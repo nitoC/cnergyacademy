@@ -144,6 +144,11 @@ export class CoursesService {
       ? await this.prisma.courseEnrollment.findUnique({ where: { userId_courseId: { userId: user.id, courseId: course.id } } })
       : null;
     const progress = enrollment ? serialiseProgress(await this.progress.progressFor(user!.id, course.id)) : null;
+    const roadmaps = await this.prisma.roadmap.findMany({
+      where: { status: 'PUBLISHED', nodes: { some: { courseId: course.id } } },
+      select: { slug: true, title: true },
+      orderBy: { title: 'asc' },
+    });
     const { modules, ...rest } = course;
     return {
       ...toCard(rest),
@@ -155,6 +160,7 @@ export class CoursesService {
       updatedAt: course.updatedAt,
       creator: course.creator,
       lessonCount: modules.reduce((s, m) => s + m.lessons.length, 0),
+      roadmaps,
       modules: modules.map((m) => ({
         id: m.id,
         title: m.title,

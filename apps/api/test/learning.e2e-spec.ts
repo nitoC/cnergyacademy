@@ -1,5 +1,5 @@
 import { INestApplication } from '@nestjs/common';
-import { createApp, loggedIn, registerVerified } from './helpers';
+import { Client, createApp, loggedIn, registerVerified } from './helpers';
 import { PrismaService } from '../src/prisma/prisma.service';
 
 describe('Learning engine: access, quizzes, progress and certificates', () => {
@@ -88,6 +88,25 @@ describe('Learning engine: access, quizzes, progress and certificates', () => {
     expect(pdf.headers['content-type']).toBe('application/pdf');
     const other = await loggedIn(app, 'amaka.obi@academy.local');
     expect((await other.get(`/certificates/${certs[0].id}/pdf`)).status).toBe(403);
+  });
+
+  it('shows the full course map to signed-out visitors without exposing content', async () => {
+    const apis = await prisma.course.findUniqueOrThrow({ where: { slug: 'production-ready-apis-with-nodejs' } });
+    const anon = new Client(app);
+    const map = await anon.get(`/courses/${apis.id}/map`);
+    expect(map.status).toBe(200);
+    expect(map.body.modules.map((m: { access: string }) => m.access)).toEqual(['FREE', 'PREMIUM', 'PREMIUM_AND_PREREQUISITE_QUIZ']);
+    expect(map.body.modules[1].state).toBe('LOCKED_PREMIUM');
+    expect(map.body.progress.percent).toBe(0);
+    expect(JSON.stringify(map.body)).not.toMatch(/"content"|isCorrect/);
+    // The map never opens content: the lesson itself still requires access.
+    const lesson = map.body.modules[1].checkpoints[0].id;
+    expect((await anon.get(`/learn/lessons/${lesson}`)).status).toBe(401);
+    const unpaid = await registerVerified(app);
+    const signedIn = await unpaid.client.get(`/courses/${apis.id}/map`);
+    expect(signedIn.body.modules[0].state).not.toMatch(/LOCKED/);
+    expect(signedIn.body.modules[1].state).toBe('LOCKED_PREMIUM');
+    expect((await unpaid.client.get(`/learn/lessons/${lesson}`)).body.code).toBe('PURCHASE_REQUIRED');
   });
 
   it('enforces attempt limits on the server', async () => {

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Check, Clock, Gauge, KeyRound, Layers, Lock, ScrollText } from 'lucide-react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -7,6 +8,7 @@ import { serverGet } from '@/lib/server-api';
 import { ACCESS_LABEL, DIFFICULTY_LABEL, duration, money } from '@/lib/format';
 import type { CourseDetail } from '@/types/api';
 import { CourseCta } from './CourseCta';
+import { CourseMap } from './CourseMap';
 import s from '../../public.module.scss';
 
 export const dynamic = 'force-dynamic';
@@ -79,7 +81,11 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
           <h2 className={s.h2}>About this course</h2>
           <p className={s.prose}>{c.description}</p>
 
-          <h2 className={s.h2}>Curriculum</h2>
+          <CourseMap
+            courseId={c.id}
+            slug={c.slug}
+            authenticated={c.viewer.authenticated}
+            list={
           <div className={s.curriculum}>
             {c.modules.map((m) => (
               <details key={m.id} className={s.moduleRow} open={m.position === 1}>
@@ -114,8 +120,20 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
               </details>
             ))}
           </div>
+            }
+          />
         </div>
         <aside>
+          {c.roadmaps.length > 0 && (
+            <div className={s.creatorCard}>
+              <span className={s.filterTitle}>On these roadmaps</span>
+              {c.roadmaps.map((r) => (
+                <Link key={r.slug} href={`/roadmaps/${r.slug}`} style={{ color: 'var(--amber-300)', fontWeight: 600 }}>
+                  {r.title} →
+                </Link>
+              ))}
+            </div>
+          )}
           <div className={s.creatorCard}>
             <span className={s.filterTitle}>Your instructor</span>
             <strong style={{ color: 'var(--ink-0)', fontSize: '1.05rem' }}>{c.creator.displayName ?? c.creator.fullName}</strong>

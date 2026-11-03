@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { IsUUID } from 'class-validator';
-import { CurrentUser, RequirePermissions } from '../common/decorators';
+import { CurrentUser, Public, RequirePermissions } from '../common/decorators';
 import type { AuthUser } from '../common/auth-user';
 import { LearningService } from './learning.service';
 import { AccessService } from './access.service';
@@ -33,6 +33,13 @@ export class LearningController {
 
   @Get('learn/courses/:id/journey')
   journey(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.learning.journey(user, id);
+  }
+
+  /** Read-only course map for anyone, signed in or not, paid or not. */
+  @Public()
+  @Get('courses/:id/map')
+  map(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user?: AuthUser) {
     return this.learning.journey(user, id);
   }
 
