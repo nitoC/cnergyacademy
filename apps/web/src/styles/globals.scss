@@ -13,8 +13,8 @@
   --surface-2: #172019;
   --surface-3: #1e2920;
   --surface-well: #0a0d0b;
-  --line: rgba(236, 230, 218, 0.08);
-  --line-strong: rgba(236, 230, 218, 0.16);
+  --line: rgb(var(--ink-rgb) / 0.08);
+  --line-strong: rgb(var(--ink-rgb) / 0.16);
 
   --ink-0: #eee8dc;
   --ink-1: #cfc8b8;
@@ -60,6 +60,74 @@
   --content: 1200px;
   --reading: 68ch;
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* Theme-dependent helpers (dark values). */
+  --ink-rgb: 236 230 218; /* for hover tints: rgb(var(--ink-rgb) / 0.05) */
+  --bg-rgb: 12 16 14; /* for translucent bars */
+  --slate-text: #a8bfc7;
+  --code-ink: #d8d2c3;
+  --locked-disc: #3a2117;
+  --trail-bed: #1b241d;
+  --trail-dash: rgb(238 232 220 / 0.18);
+  --trail-shadow: rgb(0 0 0 / 0.5);
+  --edge: #eee8dc;
+  --edge-marker: #777164;
+  --logo-trail: #2f6646;
+  --logo-dash: #ecd09a;
+  --shadow-soft: rgb(0 0 0 / 0.8);
+}
+
+/*
+ * Light theme — "field notebook by day". Same forest / amber / terracotta
+ * family, darkened where colour carries text so contrast holds on paper.
+ */
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --surface-0: #f3eee3;
+  --surface-1: #fbf8f1;
+  --surface-2: #ffffff;
+  --surface-3: #f6f1e7;
+  --surface-well: #ebe5d8;
+  --line: rgb(23 32 26 / 0.1);
+  --line-strong: rgb(23 32 26 / 0.18);
+
+  --ink-0: #16201a;
+  --ink-1: #2d3830;
+  --ink-2: #555e55;
+  --ink-3: #747a70;
+
+  --forest-300: #2b6343;
+  --forest-400: #3a7752;
+  --forest-500: #3f7d57;
+  --forest-600: #2f6646;
+  --forest-700: #234e36;
+  --forest-900: #dce9df;
+
+  --amber-200: #74500f;
+  --amber-300: #8d5f17;
+  --amber-500: #b9862f;
+  --amber-900: #f4e7cc;
+
+  --terracotta-300: #a3462a;
+  --terracotta-500: #b8613d;
+  --terracotta-900: #f5e1d8;
+
+  --danger: #b04a2e;
+
+  --ink-rgb: 23 32 26;
+  --bg-rgb: 243 238 227;
+  --slate-text: #3f5a64;
+  --code-ink: #2d3830;
+  --locked-disc: #f5e1d8;
+  --trail-bed: #ddd5c3;
+  --trail-dash: rgb(23 32 26 / 0.35);
+  --trail-shadow: rgb(90 70 40 / 0.18);
+  --edge: #2d3830;
+  --edge-marker: #747a70;
+  --logo-trail: #3f7d57;
+  --logo-dash: #f3eee3;
+  --shadow-soft: rgb(60 45 20 / 0.25);
 }
 
 *,
@@ -117,7 +185,7 @@ textarea {
 }
 
 ::selection {
-  background: rgba(223, 180, 106, 0.28);
+  background: rgb(223 180 106 / 0.35);
   color: var(--ink-0);
 }
 

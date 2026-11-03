@@ -61,7 +61,7 @@
   cursor: pointer;
   transition: border-color 140ms, background 140ms;
   input { accent-color: var(--forest-500); width: 18px; height: 18px; margin: 2px 0 0; }
-  &:hover { border-color: rgba(236, 230, 218, 0.28); }
+  &:hover { border-color: rgb(var(--ink-rgb) / 0.28); }
   &:has(input:checked) { border-color: var(--forest-400); background: rgba(63, 125, 87, 0.12); }
   &:has(input:focus-visible) { @include focus-ring; }
 }

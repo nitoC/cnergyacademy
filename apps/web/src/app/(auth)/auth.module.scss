@@ -10,7 +10,7 @@
 .artSide {
   position: relative;
   border-left: 1px solid var(--line);
-  background: radial-gradient(120% 90% at 60% 30%, #172219, var(--surface-0));
+  background: radial-gradient(120% 90% at 60% 30%, #172219, #0c100e);
   display: grid;
   align-content: center;
   overflow: hidden;
@@ -24,7 +24,7 @@
   font-family: var(--font-display);
   font-size: 1.25rem;
   font-style: italic;
-  color: var(--ink-1);
+  color: #cfc8b8;
   max-width: 30ch;
 }
 .devNote { font-size: 0.8rem; color: var(--ink-3); border-top: 1px solid var(--line); padding-top: 14px; code { color: var(--ink-2); } }

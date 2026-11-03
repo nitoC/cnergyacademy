@@ -44,7 +44,7 @@
     border-bottom: 1px solid var(--line);
     font-size: 0.64rem;
   }
-  pre { margin: 0; padding: 14px; overflow-x: auto; color: #d8d2c3; }
+  pre { margin: 0; padding: 14px; overflow-x: auto; color: var(--code-ink); }
 }
 .callout {
   font-family: var(--font-sans);

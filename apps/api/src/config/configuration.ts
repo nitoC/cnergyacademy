@@ -77,7 +77,7 @@ export function loadConfig(): AppConfig {
     },
     mail: {
       transport: (process.env.MAIL_TRANSPORT || 'outbox') as 'outbox' | 'disabled',
-      from: process.env.MAIL_FROM || 'Cnergy Academy <no-reply@academy.local>',
+      from: process.env.MAIL_FROM || 'Schutech Academy <no-reply@academy.local>',
       outboxDir: process.env.MAIL_OUTBOX_DIR || 'storage/outbox',
     },
   };

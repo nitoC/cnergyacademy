@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useMe } from '@/features/auth/session';
 import { ButtonLink } from '@/components/ui/Button';
 import { Wordmark } from './Wordmark';
+import { ThemeToggle } from '@/features/theme/ThemeToggle';
 import s from './nav.module.scss';
 
 const LINKS = [
@@ -27,6 +28,7 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className={s.siteActions}>
+          <ThemeToggle />
           {isLoading ? null : me ? (
             <ButtonLink href="/learn" variant="primary" size="sm">
               My learning
@@ -36,7 +38,7 @@ export function SiteHeader() {
               <ButtonLink href="/login" variant="tertiary" size="sm">
                 Sign in
               </ButtonLink>
-              <ButtonLink href="/register" variant="primary" size="sm">
+              <ButtonLink href="/register" variant="primary" size="sm" className={s.hideXs}>
                 Start learning
               </ButtonLink>
             </>
@@ -51,7 +53,7 @@ export function SiteFooter() {
   return (
     <footer className={s.footer}>
       <div className={s.footerInner}>
-        <span>© {new Date().getFullYear()} Cnergy Academy</span>
+        <span>© {new Date().getFullYear()} Schutech Academy</span>
         <nav aria-label="Footer">
           <Link href="/courses">Courses</Link>
           <Link href="/roadmaps">Roadmaps</Link>

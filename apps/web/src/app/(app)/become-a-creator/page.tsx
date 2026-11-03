@@ -35,7 +35,7 @@ export default function BecomeCreator() {
 
   return (
     <div className={a.stack} style={{ maxWidth: 820 }}>
-      <PageHead title="Teach on Cnergy" subtitle="Creators are reviewed by our team before they can publish. Tell us what you would teach and why you are the person to teach it." />
+      <PageHead title="Teach on Schutech" subtitle="Creators are reviewed by our team before they can publish. Tell us what you would teach and why you are the person to teach it." />
       {apps.data.length > 0 && (
         <ul className={a.queue}>
           {apps.data.map((x) => (

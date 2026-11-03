@@ -1,4 +1,4 @@
-# Cnergy Academy
+# Schutech Academy
 
 A multi-subject learning platform: structured courses with gated modules, quizzes, a winding course journey, cross-course roadmaps, paid courses through Paystack, mentor support, verifiable certificates, a creator workspace and a full administrator dashboard.
 
@@ -171,4 +171,5 @@ To add another provider (for example Flutterwave), implement `PaymentProvider` i
 - **Module access.** One policy function, `decideModuleAccess`, decides every lesson, quiz, journey and catalogue lock. Buying a course never skips a prerequisite quiz, and passing a quiz never grants premium access.
 - **Content safety.** Lessons are typed blocks validated on the server and rendered as React elements. HTML is never injected, and links and images must be http(s) or platform media.
 - **Progress.** Progress is derived from lesson-completion and quiz-pass rows by one function, so the dashboard, journey and course page always agree. Only `completedAt` is stored, and it is set in the same transaction that issues the certificate.
+- **Themes.** Light and dark themes share one token set in `apps/web/src/styles/globals.scss` (light overrides live under `[data-theme='light']`). Visitors choose Light, Dark or System from the header; the choice is stored in their browser and applied by an inline script before first paint, so there is no flash. Illustrations (the hero map, course covers, certificates) are fixed artwork and look the same in both themes.
 - **Audit.** Sensitive actions are written to an append-only `AuditLog`. There is no API to edit or delete it.

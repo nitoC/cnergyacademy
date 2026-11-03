@@ -88,7 +88,7 @@ export class PaymentsService {
       return { reference: recent.reference, authorizationUrl: recent.authorizationUrl, amount: Number(recent.amount), currency: recent.currency, provider: recent.provider };
     }
 
-    const reference = `CA-${Date.now().toString(36).toUpperCase()}-${randomCode(8)}`;
+    const reference = `SA-${Date.now().toString(36).toUpperCase()}-${randomCode(8)}`;
     const trx = await this.prisma.paymentTransaction.create({
       data: { reference, userId: user.id, courseId, provider: this.provider.name, amount: course.approvedPrice, currency: course.currency },
     });

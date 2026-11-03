@@ -38,7 +38,7 @@ export class CertificatesService {
       data: {
         userId,
         courseId,
-        serial: `CA-${year}-${randomCode(6)}`,
+        serial: `SA-${year}-${randomCode(6)}`,
         verificationCode: randomCode(12),
         learnerName: user.fullName,
         courseTitle: course.title,

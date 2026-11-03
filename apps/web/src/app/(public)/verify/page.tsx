@@ -19,7 +19,7 @@ export default function VerifyPage() {
       >
         <h1 className={s.pageTitle}>Verify a certificate</h1>
         <p className={s.detailLead}>Enter the verification code or serial number printed on the certificate.</p>
-        <TextField label="Verification code or serial" value={code} onChange={(e) => setCode(e.target.value)} placeholder="e.g. SEEDVERIFY01 or CA-2026-SEED01" required maxLength={40} />
+        <TextField label="Verification code or serial" value={code} onChange={(e) => setCode(e.target.value)} placeholder="e.g. SEEDVERIFY01 or SA-2026-SEED01" required maxLength={40} />
         <div>
           <Button type="submit" variant="primary">Check certificate</Button>
         </div>
