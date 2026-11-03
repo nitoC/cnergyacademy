@@ -1,0 +1,30 @@
+@use '@/styles/mixins' as *;
+
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-height: 100vh; @include down($bp-md) { grid-template-columns: 1fr; } }
+.formSide { display: flex; flex-direction: column; padding: 28px clamp(20px, 6vw, 72px); }
+.formWrap { margin: auto 0; width: 100%; max-width: 400px; display: grid; gap: 22px; padding: 40px 0; }
+.title { @include display(2.4rem); }
+.lead { color: var(--ink-2); }
+.form { display: grid; gap: 16px; }
+.alt { font-size: 0.88rem; color: var(--ink-2); a { color: var(--amber-300); } }
+.artSide {
+  position: relative;
+  border-left: 1px solid var(--line);
+  background: radial-gradient(120% 90% at 60% 30%, #172219, var(--surface-0));
+  display: grid;
+  align-content: center;
+  overflow: hidden;
+  @include down($bp-md) { display: none; }
+}
+.quote {
+  position: absolute;
+  left: 40px;
+  right: 40px;
+  bottom: 36px;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-style: italic;
+  color: var(--ink-1);
+  max-width: 30ch;
+}
+.devNote { font-size: 0.8rem; color: var(--ink-3); border-top: 1px solid var(--line); padding-top: 14px; code { color: var(--ink-2); } }

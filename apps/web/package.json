@@ -36,6 +36,7 @@
     "react-dom": "^19.2.4",
     "react-hook-form": "^7.91.0",
     "sass": "^1.107.1",
+    "server-only": "^0.0.1",
     "zod": "^4.6.7"
   }
 }

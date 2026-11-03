@@ -31,7 +31,8 @@ export class AuthController {
       path: `/${this.config.apiPrefix}/auth`,
       expires: session.refreshExpiresAt,
     });
-    res.cookie(SESSION_HINT_COOKIE, '1', { ...this.cookieBase(), path: '/', expires: session.refreshExpiresAt });
+    // Readable by scripts on purpose: it is a boolean hint, not a credential.
+    res.cookie(SESSION_HINT_COOKIE, '1', { ...this.cookieBase(), httpOnly: false, path: '/', expires: session.refreshExpiresAt });
   }
 
   private clearSessionCookies(res: Response) {

@@ -1,0 +1,73 @@
+@use '@/styles/mixins' as *;
+
+/* Shared page scaffolding for authenticated workspaces. */
+.head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+.title { @include display(clamp(1.7rem, 3vw, 2.3rem)); }
+.subtitle { color: var(--ink-2); margin-top: 6px; max-width: 70ch; }
+.crumbs { font-size: 0.82rem; color: var(--ink-3); margin-bottom: 8px; a:hover { color: var(--ink-0); } }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.stack { display: grid; gap: 24px; }
+.stackSm { display: grid; gap: 12px; }
+.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; align-items: start; @include down($bp-lg) { grid-template-columns: 1fr; } }
+.split2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; @include down($bp-md) { grid-template-columns: 1fr; } }
+.toolbar { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; margin-bottom: 16px; > * { min-width: 180px; } }
+.grow { flex: 1; min-width: 220px; }
+.sectionTitle { font-family: var(--font-display); font-weight: 500; font-size: 1.3rem; color: var(--ink-0); margin-bottom: 12px; }
+.muted { color: var(--ink-3); font-size: 0.85rem; }
+.mono { font-family: var(--font-mono); font-size: 0.82rem; }
+.link { color: var(--amber-300); &:hover { text-decoration: underline; } }
+
+/* Compact facts strip — used instead of oversized metric cards. */
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-3);
+  background: var(--surface-1);
+  overflow: hidden;
+}
+.fact {
+  padding: 14px 16px;
+  display: grid;
+  gap: 2px;
+  border-right: 1px solid var(--line);
+  &:last-child { border-right: 0; }
+  strong { font-family: var(--font-display); font-weight: 500; font-size: 1.55rem; color: var(--ink-0); font-variant-numeric: tabular-nums; }
+  span { font-size: 0.78rem; color: var(--ink-3); }
+}
+
+/* Definition list for detail views */
+.dl {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 8px 16px;
+  margin: 0;
+  font-size: 0.9rem;
+  dt { color: var(--ink-3); }
+  dd { margin: 0; color: var(--ink-0); overflow-wrap: anywhere; }
+  @include down($bp-sm) { grid-template-columns: 1fr; dt { margin-top: 6px; } }
+}
+
+/* Queue list: actionable rows (approvals, attention items) */
+.queue { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.queueItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.9rem;
+}
+.queueCount { font-family: var(--font-mono); color: var(--amber-300); min-width: 2ch; display: inline-block; }
+
+.activity { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; li { display: grid; grid-template-columns: 110px 1fr; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 0.86rem; } time { color: var(--ink-3); font-family: var(--font-mono); font-size: 0.74rem; padding-top: 2px; } }
+
+.formGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; @include down($bp-sm) { grid-template-columns: 1fr; } }
+.full { grid-column: 1 / -1; }
+
+.bars { display: grid; gap: 6px; }
+.bar { display: grid; grid-template-columns: 90px 1fr 48px; gap: 10px; align-items: center; font-size: 0.8rem; color: var(--ink-2); }
+.barTrack { height: 10px; border-radius: 3px; background: var(--surface-well); overflow: hidden; span { display: block; height: 100%; background: var(--forest-500); } }
+.barValue { text-align: right; font-family: var(--font-mono); }

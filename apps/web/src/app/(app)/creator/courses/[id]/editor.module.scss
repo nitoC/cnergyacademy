@@ -1,0 +1,48 @@
+@use '@/styles/mixins' as *;
+
+.modules { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.module {
+  @include raised(1);
+  border-radius: var(--radius-3);
+  padding: 14px 16px;
+  display: grid;
+  gap: 10px;
+}
+.moduleHead {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  strong { color: var(--ink-0); }
+}
+.moduleNo { font-family: var(--font-display); font-size: 1.4rem; color: var(--ink-3); }
+.items { list-style: none; margin: 0 0 0 52px; padding: 0; border-left: 1px dashed var(--line-strong); @include down($bp-sm) { margin-left: 0; } }
+.item {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 4px 0 4px 12px;
+  font-size: 0.9rem;
+  a { color: var(--ink-1); &:hover { color: var(--ink-0); text-decoration: underline; } }
+  svg { color: var(--ink-3); }
+}
+
+/* Block editor */
+.blockEditor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: start; @include down($bp-lg) { grid-template-columns: 1fr; } }
+.blocks { display: grid; gap: 10px; }
+.block {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-2);
+  background: var(--surface-1);
+  padding: 10px 12px 12px;
+  display: grid;
+  gap: 8px;
+}
+.blockHead { display: flex; align-items: center; gap: 6px; justify-content: space-between; span { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); } }
+.addBar { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; border: 1px dashed var(--line-strong); border-radius: var(--radius-2); }
+.preview { position: sticky; top: 80px; max-height: calc(100vh - 100px); overflow: auto; padding: 22px; border-radius: var(--radius-3); border: 1px solid var(--line); background: var(--surface-0); @include down($bp-lg) { position: static; max-height: none; } }
+
+/* Quiz editor */
+.question { composes: block; }
+.optRow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; }

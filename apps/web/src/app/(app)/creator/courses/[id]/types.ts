@@ -1,0 +1,39 @@
+export interface EditorCourse {
+  id: string;
+  title: string;
+  slug: string;
+  shortDescription: string;
+  description: string;
+  thumbnailUrl: string | null;
+  coverPattern: string | null;
+  status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'PUBLISHED' | 'REJECTED' | 'ARCHIVED';
+  difficulty: string;
+  learningOutcomes: string[];
+  estimatedMinutes: number;
+  proposedPrice: number | null;
+  approvedPrice: number | null;
+  currency: string;
+  completionRule: 'ALL_LESSONS' | 'ALL_LESSONS_AND_QUIZZES';
+  certificateEnabled: boolean;
+  subjectId: string;
+  categoryId: string | null;
+  subject: { id: string; name: string };
+  creator: { id: string; fullName: string; email: string };
+  editable: boolean;
+  readiness: { canSubmit: boolean; issues: string[]; hasPremiumModules: boolean; needsApprovedPrice: boolean };
+  modules: {
+    id: string;
+    title: string;
+    summary: string | null;
+    position: number;
+    access: string;
+    isPublished: boolean;
+    prerequisiteQuizId: string | null;
+    prerequisiteQuiz: { id: string; title: string } | null;
+    lessons: { id: string; title: string; position: number; isPublished: boolean; estimatedMinutes: number }[];
+    quizzes: { id: string; title: string; isPublished: boolean; lessonId: string | null; _count: { questions: number } }[];
+  }[];
+  quizzes: { id: string; title: string; moduleId: string | null; lessonId: string | null; isPublished: boolean; passingScore: number; _count: { questions: number } }[];
+  priceProposals: { id: string; amount: number; currency: string; status: string; note: string | null; decisionNote: string | null; createdAt: string; decidedAt: string | null; proposedBy: { fullName: string }; decidedBy: { fullName: string } | null }[];
+  reviews: { id: string; decision: string; feedback: string | null; createdAt: string; actor: { fullName: string } }[];
+}
