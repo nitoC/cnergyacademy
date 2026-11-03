@@ -7,6 +7,7 @@ import { AccessService } from '../learning/access.service';
 import type { AuthUser } from '../common/auth-user';
 
 const DAY = 86_400_000;
+const plural = (n: number, word: string) => (n === 1 ? word : `${word}s`);
 
 /** All figures are computed from live database rows; nothing is cached or estimated. */
 @Injectable()
@@ -63,13 +64,13 @@ export class ReportsService {
       transactions30: txByStatus.map((t) => ({ status: t.status, count: (t._count as { _all: number })._all, amount: Number((t._sum as { amount: Prisma.Decimal | null }).amount ?? 0) })),
       netRevenue30: Number(revenue30._sum.amount ?? 0),
       attention: [
-        submittedCount && { kind: 'courses', count: submittedCount, label: 'courses waiting for review', href: '/admin/courses?status=SUBMITTED' },
-        pendingApplications && { kind: 'creators', count: pendingApplications, label: 'creator applications', href: '/admin/creators' },
-        pendingPrices && { kind: 'pricing', count: pendingPrices, label: 'price proposals', href: '/admin/courses?pricing=pending' },
-        submittedRoadmaps && { kind: 'roadmaps', count: submittedRoadmaps, label: 'roadmaps submitted', href: '/admin/roadmaps?status=SUBMITTED' },
-        failed7 && { kind: 'payments', count: failed7, label: 'failed payments this week', href: '/admin/payments?status=FAILED' },
-        duplicates && { kind: 'duplicates', count: duplicates, label: 'duplicate purchases to refund', href: '/admin/payments?flagged=true' },
-        staleThreads && { kind: 'support', count: staleThreads, label: 'questions waiting over 48h', href: '/admin/support?status=WAITING_FOR_RESPONSE' },
+        submittedCount && { kind: 'courses', count: submittedCount, label: `${plural(submittedCount, 'course')} waiting for review`, href: '/admin/courses?status=SUBMITTED' },
+        pendingApplications && { kind: 'creators', count: pendingApplications, label: plural(pendingApplications, 'creator application'), href: '/admin/creators' },
+        pendingPrices && { kind: 'pricing', count: pendingPrices, label: plural(pendingPrices, 'price proposal'), href: '/admin/courses?pricing=pending' },
+        submittedRoadmaps && { kind: 'roadmaps', count: submittedRoadmaps, label: `${plural(submittedRoadmaps, 'roadmap')} submitted`, href: '/admin/roadmaps?status=SUBMITTED' },
+        failed7 && { kind: 'payments', count: failed7, label: `${plural(failed7, 'failed payment')} this week`, href: '/admin/payments?status=FAILED' },
+        duplicates && { kind: 'duplicates', count: duplicates, label: `${plural(duplicates, 'duplicate purchase')} to refund`, href: '/admin/payments?flagged=true' },
+        staleThreads && { kind: 'support', count: staleThreads, label: `${plural(staleThreads, 'question')} waiting over 48h`, href: '/admin/support?status=WAITING_FOR_RESPONSE' },
       ].filter(Boolean),
       recentActivity: recent,
     };

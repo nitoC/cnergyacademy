@@ -30,7 +30,7 @@
 
 /* Journey */
 .journeyHead { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 28px; align-items: start; margin-bottom: 8px; @include down($bp-md) { grid-template-columns: 1fr; } }
-.journeyStatus { @include raised(1); border-radius: var(--radius-3); padding: 18px; display: grid; gap: 12px; position: sticky; top: 76px; @include down($bp-md) { position: static; } }
+.journeyStatus { @include raised(1); border-radius: var(--radius-3); padding: 18px; display: grid; gap: 12px; position: sticky; top: 76px; @include down($bp-md) { position: static; order: -1; } }
 .ring { display: flex; align-items: center; gap: 14px; strong { font-family: var(--font-display); font-size: 2rem; color: var(--ink-0); font-weight: 500; } }
 .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.76rem; color: var(--ink-3); span { display: inline-flex; align-items: center; gap: 6px; } i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; border: 1.5px solid var(--ink-2); } }
 .journeyLayout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 28px; align-items: start; @include down($bp-md) { grid-template-columns: 1fr; } }
