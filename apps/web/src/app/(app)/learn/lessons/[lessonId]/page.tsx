@@ -21,7 +21,7 @@ interface LessonView {
   position: { index: number; total: number };
   previous: Neighbour | null;
   next: Neighbour | null;
-  quizzes: { id: string; title: string }[];
+  quizzes: { id: string; title: string; passed: boolean }[];
 }
 
 export default function LessonPage() {
@@ -42,7 +42,8 @@ export default function LessonPage() {
         return;
       }
       const d = q.data!;
-      if (d.quizzes[0]) router.push(`/learn/quizzes/${d.quizzes[0].id}`);
+      const checkpoint = d.quizzes.find((z) => !z.passed);
+      if (checkpoint) router.push(`/learn/quizzes/${checkpoint.id}`);
       else if (d.next && !d.next.locked) router.push(`/learn/lessons/${d.next.id}`);
       else router.push(`/learn/courses/${d.course.id}`);
     },
@@ -106,11 +107,12 @@ export default function LessonPage() {
           {!d.preview && (
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
               <Button variant="primary" size="lg" loading={complete.isPending} onClick={() => complete.mutate()} icon={d.completed ? <Check size={16} /> : undefined}>
-                {d.completed ? 'Completed — continue' : d.quizzes[0] ? 'Mark complete & take the checkpoint' : 'Mark complete & continue'}
+                {d.completed ? 'Completed — continue' : d.quizzes.some((z) => !z.passed) ? 'Mark complete & take the checkpoint' : 'Mark complete & continue'}
               </Button>
               {d.quizzes.map((qz) => (
                 <ButtonLink key={qz.id} href={`/learn/quizzes/${qz.id}`} variant="tertiary">
                   {qz.title}
+                  {qz.passed && ' · passed'}
                 </ButtonLink>
               ))}
             </div>

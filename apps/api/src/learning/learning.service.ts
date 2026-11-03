@@ -204,6 +204,12 @@ export class LearningService {
       this.prisma.quiz.findMany({ where: { lessonId, ...(ctx.isStaff ? {} : { isPublished: true }) }, select: { id: true, title: true } }),
     ]);
     const moduleStructure = structure.modules.find((m) => m.id === lesson.moduleId);
+    // The module's own checkpoint follows its last lesson.
+    const isLastInModule = moduleStructure?.lessons.at(-1)?.id === lessonId;
+    const checkpoints = [
+      ...quizzes,
+      ...(isLastInModule ? (moduleStructure?.quizzes ?? []).filter((q) => !q.lessonId).map((q) => ({ id: q.id, title: q.title })) : []),
+    ].map((q) => ({ ...q, passed: ctx.passedQuizIds.has(q.id) }));
     return {
       lesson: { id: lesson.id, title: lesson.title, summary: lesson.summary, content: lesson.content, estimatedMinutes: lesson.estimatedMinutes, updatedAt: lesson.updatedAt },
       module: {
@@ -218,7 +224,7 @@ export class LearningService {
       position: { index: idx + 1, total: ordered.length },
       previous: neighbour(idx - 1),
       next: neighbour(idx + 1),
-      quizzes,
+      quizzes: checkpoints,
     };
   }
 
