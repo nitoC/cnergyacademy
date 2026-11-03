@@ -113,7 +113,7 @@ export class AuthService {
 
     if (session.rotatedAt || session.revokedAt) {
       // Small grace window for concurrent refreshes from the same browser.
-      const graceMs = 10_000;
+      const graceMs = Number(process.env.REFRESH_REUSE_GRACE_MS ?? 10_000);
       if (session.rotatedAt && !session.revokedAt && Date.now() - session.rotatedAt.getTime() < graceMs) {
         throw new UnauthorizedException({ code: 'REFRESH_RACE', message: 'Session refreshed elsewhere; retry' });
       }
