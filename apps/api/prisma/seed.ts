@@ -198,12 +198,12 @@ async function main() {
 
   // Chidi: completed Foundations (certificate), bought and is midway through APIs.
   await completeCourse(chidi, foundations);
-  await purchase(chidi, apis, 'GA-SEED-CHIDI-APIS', 'SUCCESSFUL');
+  await purchase(chidi, apis, 'CA-SEED-CHIDI-APIS', 'SUCCESSFUL');
   await completeLessons(chidi, apis, 3, true);
   // Amaka: in progress on Foundations, one failed and one abandoned payment.
   await completeLessons(amaka, foundations, 2, false);
-  await purchase(amaka, cloud, 'GA-SEED-AMAKA-CLOUD-1', 'FAILED');
-  await purchase(amaka, cloud, 'GA-SEED-AMAKA-CLOUD-2', 'CANCELLED');
+  await purchase(amaka, cloud, 'CA-SEED-AMAKA-CLOUD-1', 'FAILED');
+  await purchase(amaka, cloud, 'CA-SEED-AMAKA-CLOUD-2', 'CANCELLED');
   // Femi: just enrolled in the free ML course.
   await prisma.courseEnrollment.upsert({ where: { userId_courseId: { userId: femi, courseId: courseIds.get('machine-learning-explained-plainly')! } }, create: { userId: femi, courseId: courseIds.get('machine-learning-explained-plainly')! }, update: {} });
 
@@ -345,11 +345,11 @@ async function completeCourse(userId: string, courseId: string) {
       data: {
         userId,
         courseId,
-        serial: 'GA-2026-SEED01',
+        serial: 'CA-2026-SEED01',
         verificationCode: 'SEEDVERIFY01',
         learnerName: user.fullName,
         courseTitle: course.title,
-        issuerName: `${course.creator.fullName} · Genuslab Academy`,
+        issuerName: `${course.creator.fullName} · Cnergy Academy`,
       },
     });
   }

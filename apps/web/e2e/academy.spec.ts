@@ -126,7 +126,7 @@ test('10. a learner completes a course and receives a verifiable certificate', a
   const quizId = page.url().split('/learn/quizzes/')[1];
   await page.getByRole('button', { name: 'Start quiz' }).click();
   await answerQuiz(page, await answerKey(request, quizId));
-  await expect(page.getByText(/certificate GA-\d{4}-\w+ has been issued/)).toBeVisible();
+  await expect(page.getByText(/certificate CA-\d{4}-\w+ has been issued/)).toBeVisible();
 
   await page.goto('/learn/certificates');
   const row = page.getByRole('row', { name: /Consulting Communication for Engineers/ });

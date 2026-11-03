@@ -92,7 +92,7 @@ export default function FinancePage() {
         {adjust.error && <Callout tone="danger">{errorMessage(adjust.error)}</Callout>}
         {adj && <>
           <TextField label="Amount (NGN, negative for a debit)" inputMode="decimal" value={adj.amount} onChange={(e) => setAdj({ ...adj, amount: e.target.value.replace(/[^\d.-]/g, '') })} />
-          <TextField label="Memo" value={adj.memo} onChange={(e) => setAdj({ ...adj, memo: e.target.value })} hint="E.g. chargeback fee for GA-…" />
+          <TextField label="Memo" value={adj.memo} onChange={(e) => setAdj({ ...adj, memo: e.target.value })} hint="E.g. chargeback fee for CA-…" />
         </>}
       </Dialog>
     </div>

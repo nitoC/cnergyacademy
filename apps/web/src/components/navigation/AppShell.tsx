@@ -196,7 +196,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
           {!me?.roles.includes('CREATOR') && (
             <Link href="/become-a-creator" className={s.navLink}>
-              Teach on Genuslab
+              Teach on Cnergy
             </Link>
           )}
           <button type="button" className={s.navLink} style={{ background: 'none', border: 0, cursor: 'pointer', textAlign: 'left' }} onClick={logout}>

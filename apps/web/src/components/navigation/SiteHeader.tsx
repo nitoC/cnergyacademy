@@ -51,7 +51,7 @@ export function SiteFooter() {
   return (
     <footer className={s.footer}>
       <div className={s.footerInner}>
-        <span>© {new Date().getFullYear()} Genuslab Academy</span>
+        <span>© {new Date().getFullYear()} Cnergy Academy</span>
         <nav aria-label="Footer">
           <Link href="/courses">Courses</Link>
           <Link href="/roadmaps">Roadmaps</Link>

@@ -9,7 +9,7 @@ const mono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500'], variabl
 const reading = Source_Serif_4({ subsets: ['latin'], variable: '--font-reading', display: 'swap' });
 
 export const metadata: Metadata = {
-  title: { default: 'Genuslab Academy', template: '%s · Genuslab Academy' },
+  title: { default: 'Cnergy Academy', template: '%s · Cnergy Academy' },
   description: 'Structured courses, honest checkpoints and mentors who answer — across engineering, cloud, security, AI and business.',
 };
 
