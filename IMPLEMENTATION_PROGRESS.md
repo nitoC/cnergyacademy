@@ -8,10 +8,10 @@ Test totals: API 85 (46 unit + 39 integration) · Web 13 component · E2E 5 Play
 
 | Decision | Why |
 | --- | --- |
-| The academy is a separate npm workspace in `academy/`, beside the blog | The repository held a small Sanity blog. The blog's code is untouched; its `tsconfig.json` and ESLint config only gained an `academy` exclusion. |
+| The academy is its own repository and npm workspace | It was started inside the Genuslab blog repository and moved here with its history; it shares no code with the blog. |
 | No Stitch or Figma designs were in the repository | The visual system was built from the written brief: dark green-black surfaces, forest primary, amber and terracotta signals, Fraunces / IBM Plex / Source Serif typography, tactile buttons, a generated contour-map illustration and generated course covers. |
 | NestJS 11 + Prisma 6 (the newest majors are Nest 12 and Prisma 7) | Stable, well-understood majors. Prisma 7 changes client generation and requires driver adapters; adopting it can be a separate upgrade. |
-| Next.js 16.2 with SCSS modules | Matches the blog's Next major. SCSS modules were the stack the brief specified. |
+| Next.js 16.2 with SCSS modules | Current stable Next major. SCSS modules were the stack the brief specified. |
 | Paystack + a sandbox provider behind one `PaymentProvider` interface | Paystack fits a Nigerian launch. The sandbox is clearly labelled and is refused in production. |
 | Cookie sessions + a CSRF header, API proxied through the web origin | httpOnly tokens, rotating refresh with reuse detection, and no cross-origin credential handling in the browser. |
 | No `CourseVersion` model | Edits to a published course go live immediately; content is frozen only while the course is under review. Versioned re-review is listed under follow-up work. |

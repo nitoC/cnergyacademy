@@ -2,10 +2,10 @@
 
 A multi-subject learning platform: structured courses with gated modules, quizzes, a winding course journey, cross-course roadmaps, paid courses through Paystack, mentor support, verifiable certificates, a creator workspace and a full administrator dashboard.
 
-This folder is a self-contained npm workspace that lives beside the Genuslab blog. It has its own dependencies, lockfile and tooling, and the blog's TypeScript and ESLint configs exclude it.
+The repository is an npm workspace with two apps.
 
 ```
-academy/
+cnergyacademy/
 ├── apps/
 │   ├── api/          NestJS 11 · Prisma 6 · PostgreSQL. REST API under /api/v1
 │   └── web/          Next.js 16 (App Router) · React 19 · TanStack Query · SCSS modules
@@ -22,7 +22,7 @@ academy/
 ## 2. Installation
 
 ```bash
-cd academy
+git clone https://github.com/nitoC/cnergyacademy && cd cnergyacademy
 ```
 
 ```bash
