@@ -22,6 +22,7 @@ export class NodeDto {
   @IsString() @MinLength(2) @MaxLength(140) @Transform(trim) title: string;
   @IsOptional() @IsString() @MaxLength(1000) description?: string;
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID() courseId?: string | null;
+  @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID() moduleId?: string | null;
   @IsOptional() @IsBoolean() isOptional?: boolean;
   @IsOptional() @IsObject() metadata?: Record<string, unknown>;
 }
@@ -31,6 +32,7 @@ export class UpdateNodeDto {
   @IsOptional() @IsString() @MinLength(2) @MaxLength(140) @Transform(trim) title?: string;
   @IsOptional() @IsString() @MaxLength(1000) description?: string;
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID() courseId?: string | null;
+  @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID() moduleId?: string | null;
   @IsOptional() @IsBoolean() isOptional?: boolean;
   @IsOptional() @IsObject() metadata?: Record<string, unknown>;
 }
@@ -51,4 +53,5 @@ export class RoadmapDecisionDto {
 
 export class AdminRoadmapQueryDto extends PaginationQueryDto {
   @IsOptional() @IsEnum(RoadmapStatus) status?: RoadmapStatus;
+  @IsOptional() @IsIn(['course', 'platform']) kind?: 'course' | 'platform';
 }

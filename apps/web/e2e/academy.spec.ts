@@ -97,6 +97,13 @@ test('8–9. a creator builds and submits a course; an administrator approves an
   await page.getByRole('textbox', { name: 'Outcome 2' }).fill('Compare outcomes with expectations');
   await page.getByRole('button', { name: 'Save details' }).click();
   await expect(page.getByText('Course details saved')).toBeVisible();
+  // Every course needs a roadmap: put its module on the main path.
+  await page.getByRole('tab', { name: 'Roadmap' }).click();
+  await page.getByRole('button', { name: 'Add step' }).click();
+  await page.getByRole('dialog').getByRole('combobox', { name: 'Module' }).click();
+  await page.getByRole('option', { name: '1. Getting started' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Save step' }).click();
+  await expect(page.getByText('Module 1: Getting started')).toBeVisible();
   await page.getByRole('tab', { name: 'Review & publish' }).click();
   await page.getByRole('button', { name: 'Submit for review' }).click();
   await expect(page.getByText('This course is with an administrator for review')).toBeVisible();

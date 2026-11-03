@@ -15,8 +15,9 @@ import { CurriculumTab } from './CurriculumTab';
 import { PricingTab } from './PricingTab';
 import { ReviewTab } from './ReviewTab';
 import { LearnersTab } from './LearnersTab';
+import { RoadmapTab } from './RoadmapTab';
 
-type Tab = 'details' | 'curriculum' | 'pricing' | 'review' | 'learners';
+type Tab = 'details' | 'curriculum' | 'roadmap' | 'pricing' | 'review' | 'learners';
 
 function Editor() {
   const { id } = useParams<{ id: string }>();
@@ -47,6 +48,7 @@ function Editor() {
         tabs={[
           { value: 'details', label: 'Details' },
           { value: 'curriculum', label: 'Curriculum' },
+          { value: 'roadmap', label: 'Roadmap' },
           { value: 'pricing', label: 'Pricing' },
           { value: 'review', label: 'Review & publish' },
           { value: 'learners', label: 'Learners' },
@@ -54,6 +56,7 @@ function Editor() {
       />
       {tab === 'details' && <DetailsTab course={c} />}
       {tab === 'curriculum' && <CurriculumTab course={c} />}
+      {tab === 'roadmap' && <RoadmapTab courseId={c.id} />}
       {tab === 'pricing' && <PricingTab course={c} />}
       {tab === 'review' && <ReviewTab course={c} />}
       {tab === 'learners' && <LearnersTab courseId={c.id} />}

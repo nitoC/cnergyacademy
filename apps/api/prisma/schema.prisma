@@ -266,6 +266,7 @@ model Course {
   mentors        MentorAssignment[]
   supportThreads SupportThread[]
   certificates   Certificate[]
+  roadmap        Roadmap?               @relation("CourseRoadmap")
 
   @@index([status, publishedAt])
   @@index([subjectId, status])
@@ -332,20 +333,21 @@ enum ModuleAccess {
 }
 
 model CourseModule {
-  id                 String       @id @default(uuid()) @db.Uuid
-  courseId           String       @db.Uuid
+  id                 String        @id @default(uuid()) @db.Uuid
+  courseId           String        @db.Uuid
   title              String
   summary            String?
   position           Int
-  access             ModuleAccess @default(FREE)
-  prerequisiteQuizId String?      @db.Uuid
-  isPublished        Boolean      @default(true)
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
-  course             Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  prerequisiteQuiz   Quiz?        @relation("ModulePrerequisite", fields: [prerequisiteQuizId], references: [id], onDelete: SetNull)
+  access             ModuleAccess  @default(FREE)
+  prerequisiteQuizId String?       @db.Uuid
+  isPublished        Boolean       @default(true)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  course             Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  prerequisiteQuiz   Quiz?         @relation("ModulePrerequisite", fields: [prerequisiteQuizId], references: [id], onDelete: SetNull)
   lessons            Lesson[]
-  quizzes            Quiz[]       @relation("ModuleQuizzes")
+  quizzes            Quiz[]        @relation("ModuleQuizzes")
+  roadmapNodes       RoadmapNode[]
 
   @@index([courseId, position])
 }
@@ -652,6 +654,7 @@ enum RoadmapStatus {
 
 enum RoadmapNodeType {
   COURSE
+  MODULE // a module of the roadmap's own course; state follows the learner's module progress
   TOPIC
   ACTIVITY
   MILESTONE
@@ -664,12 +667,16 @@ model Roadmap {
   summary     String
   subjectId   String?       @db.Uuid
   ownerId     String        @db.Uuid
+  /// Set for a course roadmap: authored by the course creator, reviewed and
+  /// published together with the course. Null for platform-wide roadmaps.
+  courseId    String?       @unique @db.Uuid
   status      RoadmapStatus @default(DRAFT)
   reviewNote  String?
   publishedAt DateTime?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   owner       User          @relation("RoadmapOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  course      Course?       @relation("CourseRoadmap", fields: [courseId], references: [id], onDelete: Cascade)
   nodes       RoadmapNode[]
   edges       RoadmapEdge[]
 
@@ -683,6 +690,7 @@ model RoadmapNode {
   title       String
   description String?
   courseId    String?                  @db.Uuid
+  moduleId    String?                  @db.Uuid
   position    Int
   isOptional  Boolean                  @default(false)
   metadata    Json                     @default("{}")
@@ -690,6 +698,7 @@ model RoadmapNode {
   updatedAt   DateTime                 @updatedAt
   roadmap     Roadmap                  @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
   course      Course?                  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  module      CourseModule?            @relation(fields: [moduleId], references: [id], onDelete: SetNull)
   outgoing    RoadmapEdge[]            @relation("EdgeFrom")
   incoming    RoadmapEdge[]            @relation("EdgeTo")
   progress    LearnerRoadmapProgress[]

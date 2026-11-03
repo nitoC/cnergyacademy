@@ -73,7 +73,10 @@ export interface ValidationIssue {
   nodeId?: string;
 }
 
-export function validateGraph(nodes: (GraphNode & { title: string; type: string; courseId: string | null; coursePublished?: boolean })[], edges: GraphEdge[]): ValidationIssue[] {
+export function validateGraph(
+  nodes: (GraphNode & { title: string; type: string; courseId: string | null; moduleId?: string | null; coursePublished?: boolean })[],
+  edges: GraphEdge[],
+): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   if (!nodes.length) issues.push({ code: 'EMPTY', message: 'Add at least one node' });
   const ids = new Set(nodes.map((n) => n.id));
@@ -83,6 +86,7 @@ export function validateGraph(nodes: (GraphNode & { title: string; type: string;
   if (nodes.length && !topologicalOrder(nodes, edges)) issues.push({ code: 'CYCLE', message: 'Prerequisites form a loop' });
   for (const n of nodes) {
     if (n.type === 'COURSE' && !n.courseId) issues.push({ code: 'COURSE_MISSING', message: `"${n.title}" must reference a course`, nodeId: n.id });
+    if (n.type === 'MODULE' && !n.moduleId) issues.push({ code: 'MODULE_MISSING', message: `"${n.title}" must reference a module of this course`, nodeId: n.id });
     if (n.type === 'COURSE' && n.courseId && n.coursePublished === false) issues.push({ code: 'COURSE_UNPUBLISHED', message: `"${n.title}" references a course that is not published`, nodeId: n.id });
   }
   return issues;
@@ -93,6 +97,7 @@ export type NodeAction = 'START_LEARNING' | 'RESUME_LEARNING' | 'VIEW_COURSE' | 
 
 export interface NodeFacts {
   id: string;
+  /** Course and module steps are learnable: they start, resume or unlock content. */
   isCourse: boolean;
   completed: boolean;
   inProgress: boolean;

@@ -11,6 +11,8 @@ import { slugify } from '../common/util';
 import type { AuthUser } from '../common/auth-user';
 import { Actor, CourseAction, isContentEditable, resolveTransition } from './course-workflow';
 import { PREMIUM_POLICIES, PREREQUISITE_POLICIES } from '../learning/access.policy';
+import { ensureCourseRoadmap } from '../roadmaps/roadmaps.service';
+import { validateGraph } from '../roadmaps/roadmap-graph';
 import type {
   AdminCourseQueryDto,
   CatalogQueryDto,
@@ -20,6 +22,16 @@ import type {
   TransitionDto,
   UpdateCourseDto,
 } from './courses.dto';
+
+const ROADMAP_FOR_READINESS = {
+  select: {
+    id: true,
+    slug: true,
+    nodes: { select: { id: true, position: true, title: true, type: true, courseId: true, moduleId: true, course: { select: { status: true } } } },
+    edges: { select: { fromNodeId: true, toNodeId: true } },
+  },
+} satisfies Prisma.Course$roadmapArgs;
+type RoadmapForReadiness = Prisma.RoadmapGetPayload<typeof ROADMAP_FOR_READINESS>;
 
 const COVER_PATTERNS = ['contour', 'switchback', 'terrace', 'delta', 'ridge', 'meander'];
 
@@ -144,8 +156,9 @@ export class CoursesService {
       ? await this.prisma.courseEnrollment.findUnique({ where: { userId_courseId: { userId: user.id, courseId: course.id } } })
       : null;
     const progress = enrollment ? serialiseProgress(await this.progress.progressFor(user!.id, course.id)) : null;
+    const ownRoadmap = await this.prisma.roadmap.findUnique({ where: { courseId: course.id }, select: { slug: true, _count: { select: { nodes: true } } } });
     const roadmaps = await this.prisma.roadmap.findMany({
-      where: { status: 'PUBLISHED', nodes: { some: { courseId: course.id } } },
+      where: { status: 'PUBLISHED', courseId: null, nodes: { some: { courseId: course.id } } },
       select: { slug: true, title: true },
       orderBy: { title: 'asc' },
     });
@@ -161,6 +174,7 @@ export class CoursesService {
       creator: course.creator,
       lessonCount: modules.reduce((s, m) => s + m.lessons.length, 0),
       roadmaps,
+      courseRoadmap: ownRoadmap && ownRoadmap._count.nodes > 0 ? { slug: ownRoadmap.slug, steps: ownRoadmap._count.nodes } : null,
       modules: modules.map((m) => ({
         id: m.id,
         title: m.title,
@@ -248,6 +262,7 @@ export class CoursesService {
       if (dto.proposedPrice !== undefined) {
         await tx.coursePriceProposal.create({ data: { courseId: course.id, proposedById: user.id, amount: dto.proposedPrice, currency: course.currency } });
       }
+      await ensureCourseRoadmap(tx, course);
       await this.audit.record({ actorId: user.id, action: 'course.create', resourceType: 'Course', resourceId: course.id, metadata: { title: course.title } }, tx);
       return course;
     });
@@ -273,6 +288,7 @@ export class CoursesService {
         quizzes: { orderBy: { createdAt: 'asc' }, select: { id: true, title: true, moduleId: true, lessonId: true, isPublished: true, passingScore: true, _count: { select: { questions: true } } } },
         priceProposals: { orderBy: { createdAt: 'desc' }, include: { proposedBy: { select: { fullName: true } }, decidedBy: { select: { fullName: true } } } },
         reviews: { orderBy: { createdAt: 'desc' }, include: { actor: { select: { fullName: true } } } },
+        roadmap: ROADMAP_FOR_READINESS,
       },
     });
     return {
@@ -291,8 +307,19 @@ export class CoursesService {
     learningOutcomes: string[];
     approvedPrice: Prisma.Decimal | null;
     modules: { isPublished: boolean; access: string; prerequisiteQuizId: string | null; lessons: { isPublished: boolean }[] }[];
+    roadmap: RoadmapForReadiness | null;
   }) {
     const issues: string[] = [];
+    // Every course carries its own roadmap, reviewed with the course.
+    if (!course.roadmap || course.roadmap.nodes.length === 0) {
+      issues.push('Build the course roadmap (add at least one step).');
+    } else {
+      const graph = validateGraph(
+        course.roadmap.nodes.map((n) => ({ ...n, coursePublished: n.course ? n.course.status === 'PUBLISHED' : undefined })),
+        course.roadmap.edges,
+      );
+      for (const g of graph) issues.push(`Roadmap: ${g.message}.`);
+    }
     const published = course.modules.filter((m) => m.isPublished);
     if (course.description.trim().length < 40) issues.push('Write a full description (at least 40 characters).');
     if (course.learningOutcomes.length < 2) issues.push('Add at least two learning outcomes.');
@@ -362,7 +389,7 @@ export class CoursesService {
   async transition(user: AuthUser, id: string, dto: TransitionDto, ip?: string) {
     const course = await this.prisma.course.findUnique({
       where: { id },
-      include: { modules: { include: { lessons: { select: { isPublished: true } } } } },
+      include: { modules: { include: { lessons: { select: { isPublished: true } } } }, roadmap: ROADMAP_FOR_READINESS },
     });
     if (!course) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Course not found' });
     const actors: Actor[] = [];

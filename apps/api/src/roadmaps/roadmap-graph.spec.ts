@@ -27,6 +27,8 @@ describe('roadmap graph', () => {
       [],
     );
     expect(v.map((i) => i.code)).toEqual(['COURSE_MISSING', 'COURSE_UNPUBLISHED']);
+    const m = validateGraph([{ id: 'z', position: 1, title: 'Module step', type: 'MODULE', courseId: null, moduleId: null }], []);
+    expect(m.map((i) => i.code)).toEqual(['MODULE_MISSING']);
     expect(validateGraph([], []).map((i) => i.code)).toEqual(['EMPTY']);
   });
 

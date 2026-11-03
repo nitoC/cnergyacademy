@@ -1,8 +1,11 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, RoadmapStatus } from '@prisma/client';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService, Tx } from '../prisma/prisma.service';
 import { AuditService } from '../audit-logs/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AccessService } from '../learning/access.service';
+import { ProgressService } from '../learning/progress.service';
+import { isContentEditable } from '../courses/course-workflow';
 import { paginate, skipTake } from '../common/pagination';
 import { slugify } from '../common/util';
 import type { AuthUser } from '../common/auth-user';
@@ -11,7 +14,38 @@ import type { AdminRoadmapQueryDto, CreateRoadmapDto, EdgeDto, NodeDto, RoadmapD
 
 const NODE_INCLUDE = {
   course: { select: { id: true, title: true, slug: true, status: true, approvedPrice: true, currency: true, estimatedMinutes: true, difficulty: true } },
+  module: { select: { id: true, title: true, position: true, courseId: true } },
 } satisfies Prisma.RoadmapNodeInclude;
+
+const COURSE_SELECT = { id: true, title: true, slug: true, status: true, creatorId: true, approvedPrice: true, currency: true } as const;
+
+type Loaded = Awaited<ReturnType<RoadmapsService['load']>>;
+
+async function uniqueRoadmapSlug(db: Tx | PrismaService, title: string) {
+  const base = slugify(title) || 'roadmap';
+  let slug = base;
+  for (let i = 2; await db.roadmap.findUnique({ where: { slug } }); i++) slug = `${base}-${i}`;
+  return slug;
+}
+
+/**
+ * Creates the course's roadmap if it does not exist yet. Every course has
+ * exactly one; it is authored by the course creator and goes live with the
+ * course.
+ */
+export async function ensureCourseRoadmap(db: Tx | PrismaService, course: { id: string; title: string; shortDescription: string; creatorId: string }) {
+  const existing = await db.roadmap.findUnique({ where: { courseId: course.id } });
+  if (existing) return existing;
+  return db.roadmap.create({
+    data: {
+      courseId: course.id,
+      ownerId: course.creatorId,
+      title: `${course.title}: roadmap`,
+      summary: course.shortDescription,
+      slug: await uniqueRoadmapSlug(db, `${course.title} roadmap`),
+    },
+  });
+}
 
 @Injectable()
 export class RoadmapsService {
@@ -19,20 +53,35 @@ export class RoadmapsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
+    private readonly access: AccessService,
+    private readonly progress: ProgressService,
   ) {}
+
+  /** Is this roadmap visible to learners right now? */
+  private isLive(r: { status: RoadmapStatus; course: { status: string } | null; nodes?: unknown[] }) {
+    return r.course ? r.course.status === 'PUBLISHED' : r.status === 'PUBLISHED';
+  }
 
   // ───────────── Public / learner ─────────────
 
   async listPublished(search?: string) {
     const roadmaps = await this.prisma.roadmap.findMany({
-      where: { status: 'PUBLISHED', ...(search ? { OR: [{ title: { contains: search, mode: 'insensitive' } }, { summary: { contains: search, mode: 'insensitive' } }] } : {}) },
-      orderBy: { publishedAt: 'desc' },
-      include: { owner: { select: { fullName: true } }, nodes: { select: { type: true, course: { select: { estimatedMinutes: true } } } } },
+      where: {
+        OR: [{ courseId: null, status: 'PUBLISHED' }, { course: { status: 'PUBLISHED' }, nodes: { some: {} } }],
+        ...(search ? { AND: [{ OR: [{ title: { contains: search, mode: 'insensitive' } }, { summary: { contains: search, mode: 'insensitive' } }] }] } : {}),
+      },
+      orderBy: [{ courseId: { sort: 'asc', nulls: 'first' } }, { updatedAt: 'desc' }],
+      include: {
+        owner: { select: { fullName: true } },
+        course: { select: { title: true, slug: true } },
+        nodes: { select: { type: true, course: { select: { estimatedMinutes: true } } } },
+      },
     });
     return roadmaps.map(({ nodes, ...r }) => ({
       ...r,
       nodeCount: nodes.length,
       courseCount: nodes.filter((n) => n.type === 'COURSE').length,
+      moduleCount: nodes.filter((n) => n.type === 'MODULE').length,
       estimatedMinutes: nodes.reduce((s, n) => s + (n.course?.estimatedMinutes ?? 0), 0),
     }));
   }
@@ -42,6 +91,7 @@ export class RoadmapsService {
       where,
       include: {
         owner: { select: { id: true, fullName: true } },
+        course: { select: COURSE_SELECT },
         nodes: { orderBy: { position: 'asc' }, include: NODE_INCLUDE },
         edges: true,
       },
@@ -50,16 +100,30 @@ export class RoadmapsService {
     return roadmap;
   }
 
-  /** Published roadmap with node states computed from the viewer's actual progress and entitlements. */
+  private canPreview(user: AuthUser | undefined, r: Loaded) {
+    if (!user) return false;
+    if (r.ownerId === user.id || user.permissions.has('roadmaps.publish')) return true;
+    return !!r.course && (r.course.creatorId === user.id || user.permissions.has('courses.review'));
+  }
+
+  /** Roadmap with node states computed from the viewer's actual progress and entitlements. */
   async view(slugOrId: string, user?: AuthUser) {
     const isUuid = /^[0-9a-f-]{36}$/i.test(slugOrId);
     const roadmap = await this.load(isUuid ? { id: slugOrId } : { slug: slugOrId });
-    const canPreview = !!user && (roadmap.ownerId === user.id || user.permissions.has('roadmaps.publish'));
-    if (roadmap.status !== 'PUBLISHED' && !canPreview) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Roadmap not found' });
-    return { ...(await this.withStates(roadmap, user)), preview: roadmap.status !== 'PUBLISHED' };
+    if (!this.isLive(roadmap) && !this.canPreview(user, roadmap)) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Roadmap not found' });
+    return { ...(await this.withStates(roadmap, user)), preview: !this.isLive(roadmap) };
   }
 
-  private async withStates(roadmap: Awaited<ReturnType<RoadmapsService['load']>>, user?: AuthUser) {
+  /** The roadmap of a course, by course slug or id. Same visibility as the course. */
+  async forCourse(slugOrId: string, user?: AuthUser) {
+    const isUuid = /^[0-9a-f-]{36}$/i.test(slugOrId);
+    const course = await this.prisma.course.findFirst({ where: isUuid ? { id: slugOrId } : { slug: slugOrId }, select: { id: true } });
+    const roadmap = course ? await this.prisma.roadmap.findUnique({ where: { courseId: course.id }, select: { id: true } }) : null;
+    if (!roadmap) throw new NotFoundException({ code: 'NOT_FOUND', message: 'This course has no roadmap yet' });
+    return this.view(roadmap.id, user);
+  }
+
+  private async withStates(roadmap: Loaded, user?: AuthUser) {
     const courseIds = roadmap.nodes.map((n) => n.courseId).filter((x): x is string => !!x);
     const [enrollments, entitlements, completions] = user
       ? await Promise.all([
@@ -71,8 +135,33 @@ export class RoadmapsService {
     const enrolledBy = new Map(enrollments.map((e) => [e.courseId, e]));
     const owned = new Set(entitlements.map((e) => e.courseId));
     const doneNodes = new Set(completions.map((c) => c.nodeId));
+
+    // Module steps follow the same progress and access rules as the course journey.
+    const moduleCourseIds = [...new Set(roadmap.nodes.map((n) => n.module?.courseId).filter((x): x is string => !!x))];
+    const moduleFacts = new Map<string, { completed: boolean; inProgress: boolean; premiumLocked: boolean; prerequisiteQuizId: string | null }>();
+    for (const courseId of moduleCourseIds) {
+      const ctx = await this.access.courseContext(user, courseId);
+      const structure = await this.progress.structure(courseId);
+      const progress = user ? await this.progress.progressFor(user.id, courseId, undefined, structure) : null;
+      for (const m of structure.modules) {
+        const p = progress?.modules.find((x) => x.moduleId === m.id);
+        const decision = this.access.decide(ctx, m);
+        const items = (p?.lessonsTotal ?? 0) + (p?.quizzesTotal ?? 0);
+        moduleFacts.set(m.id, {
+          completed: !!p?.completed && items > 0,
+          inProgress: !!p && !p.completed && p.lessonsCompleted + p.quizzesPassed > 0,
+          premiumLocked: decision.requiresPurchase,
+          prerequisiteQuizId: decision.requiresPrerequisite ? decision.prerequisiteQuizId : null,
+        });
+      }
+    }
+
     const facts = new Map<string, NodeFacts>(
       roadmap.nodes.map((n) => {
+        if (n.type === 'MODULE' && n.module) {
+          const m = moduleFacts.get(n.module.id);
+          return [n.id, { id: n.id, isCourse: true, completed: !!m?.completed, inProgress: !!m?.inProgress, premiumLocked: !!m?.premiumLocked }];
+        }
         const isCourse = n.type === 'COURSE' && !!n.course;
         const enrollment = n.courseId ? enrolledBy.get(n.courseId) : undefined;
         const price = n.course?.approvedPrice ? Number(n.course.approvedPrice) : 0;
@@ -91,6 +180,7 @@ export class RoadmapsService {
     const states = computeNodeStates(roadmap.nodes, roadmap.edges, facts);
     const level = levels(roadmap.nodes, roadmap.edges);
     const completed = roadmap.nodes.filter((n) => facts.get(n.id)!.completed).length;
+    const ownerCourse = roadmap.course;
     return {
       id: roadmap.id,
       title: roadmap.title,
@@ -99,6 +189,9 @@ export class RoadmapsService {
       status: roadmap.status,
       owner: roadmap.owner,
       publishedAt: roadmap.publishedAt,
+      course: ownerCourse
+        ? { id: ownerCourse.id, title: ownerCourse.title, slug: ownerCourse.slug, status: ownerCourse.status, approvedPrice: ownerCourse.approvedPrice ? Number(ownerCourse.approvedPrice) : null, currency: ownerCourse.currency }
+        : null,
       progress: { completed, total: roadmap.nodes.length, percent: roadmap.nodes.length ? Math.round((completed / roadmap.nodes.length) * 100) : 0 },
       nodes: roadmap.nodes.map((n) => ({
         id: n.id,
@@ -110,6 +203,13 @@ export class RoadmapsService {
         metadata: n.metadata,
         level: level.get(n.id) ?? 0,
         course: n.course ? { ...n.course, approvedPrice: n.course.approvedPrice ? Number(n.course.approvedPrice) : null } : null,
+        module: n.module
+          ? {
+              ...n.module,
+              course: ownerCourse && n.module.courseId === ownerCourse.id ? { id: ownerCourse.id, slug: ownerCourse.slug, title: ownerCourse.title } : null,
+              prerequisiteQuizId: moduleFacts.get(n.module.id)?.prerequisiteQuizId ?? null,
+            }
+          : null,
         ...states.get(n.id)!,
       })),
       edges: roadmap.edges.map((e) => ({ id: e.id, fromNodeId: e.fromNodeId, toNodeId: e.toNodeId })),
@@ -117,10 +217,13 @@ export class RoadmapsService {
   }
 
   async completeNode(user: AuthUser, nodeId: string) {
-    const node = await this.prisma.roadmapNode.findUnique({ where: { id: nodeId }, include: { roadmap: true } });
-    if (!node || node.roadmap.status !== 'PUBLISHED') throw new NotFoundException({ code: 'NOT_FOUND', message: 'Node not found' });
-    if (node.type === 'COURSE') throw new BadRequestException({ code: 'COURSE_NODE', message: 'Course nodes complete automatically when you finish the course' });
+    const node = await this.prisma.roadmapNode.findUnique({ where: { id: nodeId } });
+    if (!node) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Node not found' });
+    if (node.type === 'COURSE' || node.type === 'MODULE') {
+      throw new BadRequestException({ code: 'LEARNABLE_NODE', message: 'Course and module steps complete automatically as you learn' });
+    }
     const view = await this.view(node.roadmapId, user);
+    if (view.preview) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Node not found' });
     const state = view.nodes.find((n) => n.id === nodeId)!;
     if (state.state !== 'AVAILABLE' && state.state !== 'COMPLETED') {
       throw new ForbiddenException({ code: 'PREREQUISITE_NOT_COMPLETED', message: 'Complete the prerequisites first' });
@@ -137,14 +240,28 @@ export class RoadmapsService {
 
   // ───────────── Authoring ─────────────
 
-  private async manageable(user: AuthUser, roadmapId: string) {
-    const roadmap = await this.prisma.roadmap.findUnique({ where: { id: roadmapId } });
+  /**
+   * Who may edit: for a course roadmap, whoever may manage the course (its
+   * creator, or an administrator with course management); for a platform
+   * roadmap, its owner or a roadmap reviewer.
+   */
+  private async manageable(user: AuthUser, roadmapId: string, opts: { forRead?: boolean } = {}) {
+    const roadmap = await this.prisma.roadmap.findUnique({ where: { id: roadmapId }, include: { course: { select: COURSE_SELECT } } });
     if (!roadmap) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Roadmap not found' });
+    if (roadmap.course) {
+      const owner = roadmap.course.creatorId === user.id && user.permissions.has('courses.manage_own');
+      const reviewer = user.permissions.has('courses.manage_any') || (opts.forRead && user.permissions.has('courses.review'));
+      if (!owner && !reviewer) throw new ForbiddenException({ code: 'ACCOUNT_NOT_AUTHORIZED', message: 'Only the course creator can edit this roadmap' });
+      if (!opts.forRead && !isContentEditable(roadmap.course.status as never)) {
+        throw new ConflictException({ code: 'COURSE_LOCKED', message: 'The roadmap is locked while its course is under review or archived' });
+      }
+      return roadmap;
+    }
     const isOwner = roadmap.ownerId === user.id && user.permissions.has('roadmaps.create');
     if (!isOwner && !user.permissions.has('roadmaps.publish')) {
       throw new ForbiddenException({ code: 'ACCOUNT_NOT_AUTHORIZED', message: 'You can only edit your own roadmaps' });
     }
-    if (roadmap.status === 'SUBMITTED' && !user.permissions.has('roadmaps.publish')) {
+    if (!opts.forRead && roadmap.status === 'SUBMITTED' && !user.permissions.has('roadmaps.publish')) {
       throw new ConflictException({ code: 'ROADMAP_LOCKED', message: 'This roadmap is under review' });
     }
     return roadmap;
@@ -152,34 +269,43 @@ export class RoadmapsService {
 
   mine(user: AuthUser) {
     return this.prisma.roadmap.findMany({
-      where: { ownerId: user.id },
-      orderBy: { updatedAt: 'desc' },
-      include: { _count: { select: { nodes: true, edges: true } } },
+      where: { OR: [{ ownerId: user.id, courseId: null }, { course: { creatorId: user.id } }] },
+      orderBy: [{ courseId: { sort: 'asc', nulls: 'first' } }, { updatedAt: 'desc' }],
+      include: { course: { select: { id: true, title: true, status: true } }, _count: { select: { nodes: true, edges: true } } },
     });
   }
 
   async create(user: AuthUser, dto: CreateRoadmapDto) {
-    const base = slugify(dto.title) || 'roadmap';
-    let slug = base;
-    for (let i = 2; await this.prisma.roadmap.findUnique({ where: { slug } }); i++) slug = `${base}-${i}`;
-    const roadmap = await this.prisma.roadmap.create({ data: { title: dto.title, summary: dto.summary, subjectId: dto.subjectId ?? null, ownerId: user.id, slug } });
+    const roadmap = await this.prisma.roadmap.create({
+      data: { title: dto.title, summary: dto.summary, subjectId: dto.subjectId ?? null, ownerId: user.id, slug: await uniqueRoadmapSlug(this.prisma, dto.title) },
+    });
     await this.audit.record({ actorId: user.id, action: 'roadmap.create', resourceType: 'Roadmap', resourceId: roadmap.id });
     return roadmap;
   }
 
+  /** The course's roadmap for its editor, created on first use for older courses. */
+  async courseRoadmapId(user: AuthUser, courseId: string) {
+    const { course } = await this.access.assertCanManageCourse(user, courseId);
+    const roadmap = await ensureCourseRoadmap(this.prisma, course);
+    return { id: roadmap.id };
+  }
+
   async editor(user: AuthUser, id: string) {
-    await this.manageable(user, id).catch((err) => {
-      // Reviewers may open submitted roadmaps; owners may view theirs while locked.
-      if (err instanceof ConflictException) return;
-      throw err;
-    });
+    await this.manageable(user, id, { forRead: true });
     const roadmap = await this.load({ id });
     const issues = validateGraph(
       roadmap.nodes.map((n) => ({ ...n, coursePublished: n.course ? n.course.status === 'PUBLISHED' : undefined })),
       roadmap.edges,
     );
     const level = levels(roadmap.nodes, roadmap.edges);
-    return { ...roadmap, nodes: roadmap.nodes.map((n) => ({ ...n, level: level.get(n.id) ?? 0 })), issues };
+    const modules = roadmap.courseId
+      ? await this.prisma.courseModule.findMany({ where: { courseId: roadmap.courseId }, orderBy: { position: 'asc' }, select: { id: true, title: true, position: true } })
+      : [];
+    const editable = await this.manageable(user, id).then(
+      () => true,
+      () => false,
+    );
+    return { ...roadmap, nodes: roadmap.nodes.map((n) => ({ ...n, level: level.get(n.id) ?? 0 })), issues, modules, editable };
   }
 
   async update(user: AuthUser, id: string, dto: UpdateRoadmapDto) {
@@ -189,22 +315,30 @@ export class RoadmapsService {
 
   async remove(user: AuthUser, id: string) {
     const roadmap = await this.manageable(user, id);
+    if (roadmap.courseId) throw new ConflictException({ code: 'COURSE_ROADMAP', message: 'Every course has a roadmap. Edit its steps instead of deleting it.' });
     if (roadmap.status === 'PUBLISHED') throw new ConflictException({ code: 'ROADMAP_PUBLISHED', message: 'Archive a published roadmap instead of deleting it' });
     await this.prisma.roadmap.delete({ where: { id } });
     await this.audit.record({ actorId: user.id, action: 'roadmap.delete', resourceType: 'Roadmap', resourceId: id, metadata: { title: roadmap.title } });
     return { deleted: true };
   }
 
-  private async assertCourseRef(courseId?: string | null) {
-    if (!courseId) return;
-    const course = await this.prisma.course.findUnique({ where: { id: courseId }, select: { id: true } });
-    if (!course) throw new BadRequestException({ code: 'INVALID_COURSE', message: 'Course not found' });
+  private async assertRefs(roadmap: { id: string; courseId: string | null }, type: string, courseId?: string | null, moduleId?: string | null) {
+    if (type === 'COURSE') {
+      if (!courseId) throw new BadRequestException({ code: 'COURSE_MISSING', message: 'Course steps must reference a course' });
+      if (courseId === roadmap.courseId) throw new BadRequestException({ code: 'INVALID_COURSE', message: 'Use module steps for this course’s own content' });
+      if (!(await this.prisma.course.findUnique({ where: { id: courseId }, select: { id: true } }))) throw new BadRequestException({ code: 'INVALID_COURSE', message: 'Course not found' });
+    }
+    if (type === 'MODULE') {
+      if (!roadmap.courseId) throw new BadRequestException({ code: 'MODULE_NOT_ALLOWED', message: 'Module steps belong in a course roadmap' });
+      if (!moduleId) throw new BadRequestException({ code: 'MODULE_MISSING', message: 'Module steps must reference a module of this course' });
+      const module = await this.prisma.courseModule.findUnique({ where: { id: moduleId }, select: { courseId: true } });
+      if (!module || module.courseId !== roadmap.courseId) throw new BadRequestException({ code: 'INVALID_MODULE', message: 'Module must belong to this course' });
+    }
   }
 
   async addNode(user: AuthUser, roadmapId: string, dto: NodeDto) {
-    await this.manageable(user, roadmapId);
-    if (dto.type === 'COURSE' && !dto.courseId) throw new BadRequestException({ code: 'COURSE_MISSING', message: 'Course nodes must reference a course' });
-    await this.assertCourseRef(dto.courseId);
+    const roadmap = await this.manageable(user, roadmapId);
+    await this.assertRefs(roadmap, dto.type, dto.courseId, dto.moduleId);
     const max = await this.prisma.roadmapNode.aggregate({ where: { roadmapId }, _max: { position: true } });
     return this.prisma.roadmapNode.create({
       data: {
@@ -213,6 +347,7 @@ export class RoadmapsService {
         title: dto.title,
         description: dto.description,
         courseId: dto.type === 'COURSE' ? dto.courseId : null,
+        moduleId: dto.type === 'MODULE' ? dto.moduleId : null,
         isOptional: dto.isOptional ?? false,
         metadata: (dto.metadata ?? {}) as Prisma.InputJsonValue,
         position: (max._max.position ?? 0) + 1,
@@ -224,11 +359,11 @@ export class RoadmapsService {
   async updateNode(user: AuthUser, nodeId: string, dto: UpdateNodeDto) {
     const node = await this.prisma.roadmapNode.findUnique({ where: { id: nodeId } });
     if (!node) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Node not found' });
-    await this.manageable(user, node.roadmapId);
+    const roadmap = await this.manageable(user, node.roadmapId);
     const type = dto.type ?? node.type;
     const courseId = dto.courseId === undefined ? node.courseId : dto.courseId;
-    if (type === 'COURSE' && !courseId) throw new BadRequestException({ code: 'COURSE_MISSING', message: 'Course nodes must reference a course' });
-    await this.assertCourseRef(courseId);
+    const moduleId = dto.moduleId === undefined ? node.moduleId : dto.moduleId;
+    await this.assertRefs(roadmap, type, courseId, moduleId);
     return this.prisma.roadmapNode.update({
       where: { id: nodeId },
       data: {
@@ -236,6 +371,7 @@ export class RoadmapsService {
         title: dto.title,
         description: dto.description,
         courseId: type === 'COURSE' ? courseId : null,
+        moduleId: type === 'MODULE' ? moduleId : null,
         isOptional: dto.isOptional,
         metadata: dto.metadata as Prisma.InputJsonValue | undefined,
       },
@@ -292,6 +428,9 @@ export class RoadmapsService {
   async decide(user: AuthUser, id: string, dto: RoadmapDecisionDto, ip?: string) {
     const roadmap = await this.prisma.roadmap.findUnique({ where: { id } });
     if (!roadmap) throw new NotFoundException({ code: 'NOT_FOUND', message: 'Roadmap not found' });
+    if (roadmap.courseId) {
+      throw new BadRequestException({ code: 'COURSE_ROADMAP', message: 'A course roadmap is reviewed and published together with its course' });
+    }
     const isOwner = roadmap.ownerId === user.id && user.permissions.has('roadmaps.create');
     const isReviewer = user.permissions.has('roadmaps.publish');
     const rules: Record<RoadmapDecisionDto['action'], { from: RoadmapStatus[]; to: RoadmapStatus; allowed: boolean }> = {
@@ -324,13 +463,19 @@ export class RoadmapsService {
     return updated;
   }
 
-  async adminList(q: AdminRoadmapQueryDto) {
+  async adminList(q: AdminRoadmapQueryDto & { kind?: 'course' | 'platform' }) {
     const where: Prisma.RoadmapWhereInput = {
-      ...(q.status ? { status: q.status } : {}),
+      ...(q.status ? { status: q.status, courseId: null } : {}),
+      ...(q.kind === 'course' ? { courseId: { not: null } } : q.kind === 'platform' ? { courseId: null } : {}),
       ...(q.search ? { title: { contains: q.search, mode: 'insensitive' } } : {}),
     };
     const [items, total] = await this.prisma.$transaction([
-      this.prisma.roadmap.findMany({ where, ...skipTake(q), orderBy: { updatedAt: q.order }, include: { owner: { select: { fullName: true } }, _count: { select: { nodes: true, edges: true } } } }),
+      this.prisma.roadmap.findMany({
+        where,
+        ...skipTake(q),
+        orderBy: { updatedAt: q.order },
+        include: { owner: { select: { fullName: true } }, course: { select: { id: true, title: true, status: true } }, _count: { select: { nodes: true, edges: true } } },
+      }),
       this.prisma.roadmap.count({ where }),
     ]);
     return paginate(items, total, q);

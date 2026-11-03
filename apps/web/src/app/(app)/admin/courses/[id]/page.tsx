@@ -11,6 +11,7 @@ import { Button, ButtonLink } from '@/components/ui/Button';
 import { Callout, Dialog, ErrorState, LoadingBlock, Panel, Pill, StatusPill, useToast } from '@/components/ui/Feedback';
 import { TextArea } from '@/components/ui/Field';
 import type { EditorCourse } from '../../../creator/courses/[id]/types';
+import { RoadmapBoard } from '@/features/roadmaps/RoadmapBoard';
 import { PageHead } from '../../../PageHead';
 import a from '../../../app.module.scss';
 
@@ -83,6 +84,14 @@ export default function AdminCourseReview() {
             </dl>
             <p style={{ marginTop: 14, whiteSpace: 'pre-line', color: 'var(--ink-2)', fontSize: '0.9rem' }}>{c.description}</p>
           </Panel>
+          <section>
+            <h2 className={a.sectionTitle}>Roadmap</h2>
+            {c.roadmap && c.roadmap.nodes.length > 0 ? (
+              <RoadmapBoard path={`/courses/${c.id}/roadmap`} showProgress={false} />
+            ) : (
+              <p className={a.muted}>The creator has not built this course’s roadmap yet. It is required before submission.</p>
+            )}
+          </section>
           <section>
             <h2 className={a.sectionTitle}>Curriculum</h2>
             <ol className={a.queue} style={{ listStyle: 'none' }}>

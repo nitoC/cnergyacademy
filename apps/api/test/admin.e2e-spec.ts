@@ -90,6 +90,21 @@ describe('Administration, roles, roadmaps and support', () => {
     expect(anon.body.nodes.find((n: { title: string }) => n.title === 'Foundations of Software Engineering').state).toBe('AVAILABLE');
   });
 
+  it('derives module steps on a course roadmap from real progress and access', async () => {
+    const chidi = await loggedIn(app, 'chidi.eze@academy.local');
+    const view = await chidi.get('/courses/production-ready-apis-with-nodejs/roadmap');
+    expect(view.status).toBe(200);
+    const modules = view.body.nodes.filter((n: { type: string }) => n.type === 'MODULE');
+    // Chidi finished module 1, is midway through module 2, and has not passed the gate to module 3.
+    expect(modules.map((m: { state: string }) => m.state)).toEqual(['COMPLETED', 'IN_PROGRESS', 'LOCKED_PREREQUISITE']);
+    // A visitor who has not paid sees the premium modules as locked, but can see the whole map.
+    const anon = await new Client(app).get('/courses/production-ready-apis-with-nodejs/roadmap');
+    const anonModules = anon.body.nodes.filter((n: { type: string }) => n.type === 'MODULE');
+    expect(anonModules[0].state).toBe('AVAILABLE');
+    expect(anonModules[1].state).toMatch(/LOCKED/);
+    expect((await chidi.post(`/roadmap-nodes/${modules[0].id}/complete`)).body.code).toBe('LEARNABLE_NODE');
+  });
+
   it('keeps support conversations private and updates status on reply', async () => {
     const apis = await prisma.course.findUniqueOrThrow({ where: { slug: 'production-ready-apis-with-nodejs' } });
     const learner = await registerVerified(app);

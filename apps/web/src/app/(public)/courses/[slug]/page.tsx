@@ -9,6 +9,7 @@ import { ACCESS_LABEL, DIFFICULTY_LABEL, duration, money } from '@/lib/format';
 import type { CourseDetail } from '@/types/api';
 import { CourseCta } from './CourseCta';
 import { CourseMap } from './CourseMap';
+import { CourseRoadmap } from './CourseRoadmap';
 import s from '../../public.module.scss';
 
 export const dynamic = 'force-dynamic';
@@ -81,6 +82,15 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
           <h2 className={s.h2}>About this course</h2>
           <p className={s.prose}>{c.description}</p>
 
+          {c.courseRoadmap && (
+            <section aria-labelledby="course-roadmap" style={{ marginBottom: 48 }}>
+              <h2 id="course-roadmap" className={s.h2}>Roadmap</h2>
+              <p style={{ color: 'var(--ink-3)', fontSize: '0.88rem', marginBottom: 12 }}>
+                How {c.creator.displayName ?? c.creator.fullName} suggests you move through this course: the modules in order, with practice and related topics along the way.
+              </p>
+              <CourseRoadmap slug={c.slug} />
+            </section>
+          )}
           <CourseMap
             courseId={c.id}
             slug={c.slug}

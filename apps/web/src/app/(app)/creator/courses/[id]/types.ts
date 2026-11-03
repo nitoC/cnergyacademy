@@ -35,5 +35,6 @@ export interface EditorCourse {
   }[];
   quizzes: { id: string; title: string; moduleId: string | null; lessonId: string | null; isPublished: boolean; passingScore: number; _count: { questions: number } }[];
   priceProposals: { id: string; amount: number; currency: string; status: string; note: string | null; decisionNote: string | null; createdAt: string; decidedAt: string | null; proposedBy: { fullName: string }; decidedBy: { fullName: string } | null }[];
+  roadmap: { id: string; slug: string; nodes: { id: string }[] } | null;
   reviews: { id: string; decision: string; feedback: string | null; createdAt: string; actor: { fullName: string } }[];
 }

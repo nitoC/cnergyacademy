@@ -275,6 +275,9 @@ async function main() {
     'PUBLISHED',
   );
 
+  console.log('Seeding course roadmaps…');
+  for (const spec of COURSES) await courseRoadmap(courseIds.get(spec.slug)!);
+
   console.log('Seeding notifications and audit history…');
   if (!(await prisma.auditLog.findFirst({ where: { action: 'seed.run' } }))) {
     await prisma.auditLog.create({ data: { actorId: admin, action: 'seed.run', resourceType: 'Platform', metadata: { note: 'Development seed' } } });
@@ -401,6 +404,64 @@ async function roadmap(
     ids.set(n.key, node.id);
   }
   await prisma.roadmapEdge.createMany({ data: edges.map(([a, b]) => ({ roadmapId: r.id, fromNodeId: ids.get(a)!, toNodeId: ids.get(b)! })) });
+}
+
+/**
+ * Every course has a roadmap. Its modules form the main path; related topics
+ * and practice activities branch off it; a final milestone marks the
+ * certificate. Only filled in when the roadmap has no steps yet.
+ */
+const ROADMAP_EXTRAS: Record<string, { type: 'TOPIC' | 'ACTIVITY'; title: string; description: string; after: number | null; optional?: boolean }[]> = {
+  'foundations-of-software-engineering': [
+    { type: 'TOPIC', title: 'Reading other people’s code', description: 'Pick an open-source project and trace one feature end to end.', after: 1, optional: true },
+    { type: 'ACTIVITY', title: 'Refactor a small project', description: 'Rename, split and test one module of something you wrote last year.', after: 2 },
+  ],
+  'production-ready-apis-with-nodejs': [
+    { type: 'TOPIC', title: 'HTTP and JSON basics', description: 'Requests, responses, headers and status codes — a quick refresher before you start.', after: null, optional: true },
+    { type: 'ACTIVITY', title: 'Build a small CRUD API', description: 'Model one resource with list, create, read and update endpoints.', after: 1 },
+    { type: 'TOPIC', title: 'Observability tools', description: 'Look at how log aggregation and uptime checks are set up in practice.', after: 3, optional: true },
+  ],
+  'cloud-infrastructure-essentials': [
+    { type: 'TOPIC', title: 'Linux command line', description: 'Navigating files, permissions and processes on a server.', after: null, optional: true },
+    { type: 'ACTIVITY', title: 'Deploy a static site', description: 'Put a small site on object storage behind a CDN.', after: 1 },
+  ],
+  'practical-network-defence': [{ type: 'TOPIC', title: 'TCP/IP refresher', description: 'Addresses, ports and the three-way handshake.', after: null, optional: true }],
+  'machine-learning-explained-plainly': [{ type: 'ACTIVITY', title: 'Train a model in a notebook', description: 'Split a small dataset, train a classifier and compare test and training scores.', after: 1 }],
+  'consulting-communication-for-engineers': [{ type: 'ACTIVITY', title: 'Rewrite an update answer-first', description: 'Take a recent status email and restructure it around the decision needed.', after: 1 }],
+};
+
+async function courseRoadmap(courseId: string) {
+  const course = await prisma.course.findUniqueOrThrow({
+    where: { id: courseId },
+    include: { modules: { orderBy: { position: 'asc' } }, roadmap: { include: { _count: { select: { nodes: true } } } } },
+  });
+  let roadmap = course.roadmap;
+  if (!roadmap) {
+    let slug = slugify(`${course.title} roadmap`);
+    for (let i = 2; await prisma.roadmap.findUnique({ where: { slug } }); i++) slug = `${slugify(`${course.title} roadmap`)}-${i}`;
+    roadmap = { ...(await prisma.roadmap.create({ data: { courseId, ownerId: course.creatorId, title: `${course.title}: roadmap`, summary: course.shortDescription, slug } })), _count: { nodes: 0 } };
+  }
+  if (roadmap._count.nodes > 0) return;
+  let position = 0;
+  const node = (data: Omit<Prisma.RoadmapNodeUncheckedCreateInput, 'roadmapId' | 'position'>) => prisma.roadmapNode.create({ data: { ...data, roadmapId: roadmap!.id, position: ++position } });
+  const edge = (fromNodeId: string, toNodeId: string) => prisma.roadmapEdge.create({ data: { roadmapId: roadmap!.id, fromNodeId, toNodeId } });
+  const extras = ROADMAP_EXTRAS[course.slug] ?? [];
+  const before = [];
+  for (const x of extras.filter((e) => e.after === null)) before.push(await node({ type: x.type, title: x.title, description: x.description, isOptional: !!x.optional }));
+  const moduleNodes = [];
+  for (const m of course.modules) moduleNodes.push(await node({ type: 'MODULE', title: m.title, description: m.summary, moduleId: m.id }));
+  for (const b of before) if (moduleNodes[0]) await edge(b.id, moduleNodes[0].id);
+  for (let i = 1; i < moduleNodes.length; i++) await edge(moduleNodes[i - 1].id, moduleNodes[i].id);
+  for (const x of extras.filter((e) => e.after !== null)) {
+    const from = moduleNodes[(x.after as number) - 1];
+    if (!from) continue;
+    const n = await node({ type: x.type, title: x.title, description: x.description, isOptional: !!x.optional });
+    await edge(from.id, n.id);
+  }
+  if (course.certificateEnabled && moduleNodes.length) {
+    const cert = await node({ type: 'MILESTONE', title: 'Earn the certificate', description: 'Complete every lesson and pass every checkpoint quiz.' });
+    await edge(moduleNodes[moduleNodes.length - 1].id, cert.id);
+  }
 }
 
 main()

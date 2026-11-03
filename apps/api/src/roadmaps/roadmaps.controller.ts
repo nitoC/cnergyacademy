@@ -24,6 +24,19 @@ export class RoadmapsController {
     return this.roadmaps.view(slugOrId.slice(0, 120), user);
   }
 
+  /** The roadmap of a course. Visible whenever the course is (no purchase needed). */
+  @Public()
+  @Get('courses/:slugOrId/roadmap')
+  forCourse(@Param('slugOrId') slugOrId: string, @CurrentUser() user?: AuthUser) {
+    return this.roadmaps.forCourse(slugOrId.slice(0, 120), user);
+  }
+
+  /** Editor entry point for a course's roadmap (created on first use). */
+  @Get('creator/courses/:id/roadmap')
+  courseRoadmap(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.roadmaps.courseRoadmapId(user, id);
+  }
+
   @Post('roadmap-nodes/:id/complete')
   @HttpCode(200)
   complete(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
@@ -49,6 +62,7 @@ export class RoadmapsController {
   }
 
   @Get('creator/roadmaps/:id')
+  @RequirePermissions('roadmaps.create')
   editor(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.roadmaps.editor(user, id);
   }
