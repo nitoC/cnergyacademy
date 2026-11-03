@@ -94,6 +94,7 @@ export interface CourseDetail extends CourseCard {
   certificateEnabled: boolean;
   updatedAt: string;
   lessonCount: number;
+  roadmaps: { slug: string; title: string }[];
   creator: { id: string; fullName: string; displayName: string | null; bio: string | null; avatarUrl: string | null };
   modules: {
     id: string;

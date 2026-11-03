@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { PrismaService } from '../prisma/prisma.service';
 import type { AuthUser } from '../common/auth-user';
 import { AccessService } from './access.service';
-import { ProgressService, serialiseProgress } from './progress.service';
+import { computeProgress, ProgressService, serialiseProgress } from './progress.service';
 import type { AccessDecision } from './access.policy';
 
 export type CheckpointState = 'COMPLETED' | 'CURRENT' | 'AVAILABLE' | 'UPCOMING' | 'LOCKED_PREMIUM' | 'LOCKED_PREREQUISITE' | 'LOCKED';
@@ -94,19 +94,28 @@ export class LearningService {
   }
 
   /** The winding course journey: every checkpoint with its state, derived on the server. */
-  async journey(user: AuthUser, courseId: string) {
+  /**
+   * The course journey. With no user (or a user who has not enrolled or
+   * paid) it is a read-only map: every checkpoint is listed with the locks
+   * the access policy would apply, but no content is returned.
+   */
+  async journey(user: AuthUser | undefined, courseId: string) {
     const ctx = await this.access.courseContext(user, courseId);
     if (ctx.course.status !== 'PUBLISHED' && !ctx.isStaff) throw new NotFoundException({ code: 'COURSE_NOT_PUBLISHED', message: 'Course not available' });
     const structure = await this.progress.structure(courseId, undefined, ctx.isStaff);
-    const progress = await this.progress.progressFor(user.id, courseId, undefined, structure);
+    const progress = user
+      ? await this.progress.progressFor(user.id, courseId, undefined, structure)
+      : computeProgress(structure, new Set(), new Set(), null);
+    // Signed-out viewers: a nil UUID matches no rows, so every per-user lookup is empty.
+    const userId = user?.id ?? '00000000-0000-0000-0000-000000000000';
     const course = await this.prisma.course.findUniqueOrThrow({
       where: { id: courseId },
       select: { id: true, title: true, slug: true, shortDescription: true, approvedPrice: true, currency: true, coverPattern: true, subject: { select: { name: true, accentColor: true } }, creator: { select: { fullName: true } } },
     });
-    const enrollment = await this.prisma.courseEnrollment.findUnique({ where: { userId_courseId: { userId: user.id, courseId } } });
+    const enrollment = await this.prisma.courseEnrollment.findUnique({ where: { userId_courseId: { userId, courseId } } });
     const attempts = await this.prisma.quizAttempt.groupBy({
       by: ['quizId'],
-      where: { userId: user.id, status: 'SUBMITTED', quiz: { courseId } },
+      where: { userId, status: 'SUBMITTED', quiz: { courseId } },
       _count: { _all: true },
       _max: { scorePercent: true },
     });
@@ -181,7 +190,7 @@ export class LearningService {
       progress: serialiseProgress(progress),
       courseQuizzes: structure.courseQuizzes.map((q) => quizCheckpoint(q, null, false, gateQuizIds.has(q.id))),
       modules,
-      certificate: await this.prisma.certificate.findUnique({ where: { userId_courseId: { userId: user.id, courseId } }, select: { id: true, serial: true, status: true } }),
+      certificate: await this.prisma.certificate.findUnique({ where: { userId_courseId: { userId, courseId } }, select: { id: true, serial: true, status: true } }),
     };
   }
 

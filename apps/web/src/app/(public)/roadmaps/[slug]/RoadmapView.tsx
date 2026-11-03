@@ -1,11 +1,13 @@
 'use client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { del, errorMessage, get, post } from '@/lib/api';
 import { duration, money } from '@/lib/format';
 import { useMe } from '@/features/auth/session';
-import { RoadmapGraph } from '@/components/roadmap/RoadmapGraph';
+import { RoadmapGraph, STATE_LABEL } from '@/components/roadmap/RoadmapGraph';
+import rs from '@/components/roadmap/roadmap.module.scss';
 import { Button, ButtonLink } from '@/components/ui/Button';
-import { Callout, ErrorState, LoadingBlock, Progress, useToast } from '@/components/ui/Feedback';
+import { Callout, Dialog, ErrorState, LoadingBlock, Pill, Progress, useToast } from '@/components/ui/Feedback';
 import s from '../../public.module.scss';
 
 export interface RoadmapNode {
@@ -38,6 +40,7 @@ export function RoadmapView({ slug }: { slug: string }) {
   const { data: me } = useMe();
   const qc = useQueryClient();
   const toast = useToast();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const key = ['roadmap', slug, me?.id ?? 'anon'];
   const q = useQuery({ queryKey: key, queryFn: () => get<RoadmapViewData>(`/roadmaps/${slug}`) });
   const mark = useMutation({
@@ -84,6 +87,8 @@ export function RoadmapView({ slug }: { slug: string }) {
     }
   };
 
+  const selected = r.nodes.find((n) => n.id === selectedId) ?? null;
+
   return (
     <div className={s.container}>
       <header className={s.discoverHead}>
@@ -98,22 +103,46 @@ export function RoadmapView({ slug }: { slug: string }) {
         ) : (
           <p style={{ fontSize: '0.88rem', color: 'var(--ink-3)' }}>Sign in to track your progress on this roadmap.</p>
         )}
+        <ul className={rs.legend} aria-label="Legend">
+          <li><i className={rs.lCompleted} /> Completed</li>
+          <li><i className={rs.lProgress} /> In progress</li>
+          <li><i className={rs.lPremium} /> Premium course</li>
+          <li><i className={rs.lPrereq} /> Needs a prerequisite</li>
+          <li><i className={rs.lOptional} /> Branch step (main path is solid)</li>
+        </ul>
+        <p style={{ fontSize: '0.85rem', color: 'var(--ink-3)' }}>Select any step to see what it covers and how to start it.</p>
       </header>
-      <RoadmapGraph
-        nodes={r.nodes}
-        edges={r.edges}
-        renderBody={(n) => (
-          <>
-            {n.course && (
-              <div style={{ fontSize: '0.74rem', color: 'var(--ink-3)' }}>
-                {duration(n.course.estimatedMinutes)} · {money(n.course.approvedPrice, n.course.currency)}
-              </div>
+      <RoadmapGraph nodes={r.nodes} edges={r.edges} selectedId={selectedId} onSelect={(n) => setSelectedId(n.id)} />
+      <Dialog open={!!selected} onClose={() => setSelectedId(null)} title={selected?.title ?? ''}>
+        {selected && (
+          <div style={{ display: 'grid', gap: 12 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <Pill tone="slate">{selected.type.toLowerCase()}</Pill>
+              {selected.isOptional && <Pill>optional</Pill>}
+              <Pill tone={selected.state === 'COMPLETED' ? 'forest' : selected.state === 'LOCKED_PREMIUM' ? 'terracotta' : selected.state.startsWith('LOCKED') || selected.state === 'IN_PROGRESS' ? 'amber' : 'neutral'}>
+                {STATE_LABEL[selected.state] ?? selected.state}
+              </Pill>
+            </div>
+            {selected.description && <p>{selected.description}</p>}
+            {selected.course && (
+              <p style={{ fontSize: '0.88rem', color: 'var(--ink-2)' }}>
+                Course: <strong style={{ color: 'var(--ink-0)' }}>{selected.course.title}</strong> · {duration(selected.course.estimatedMinutes)} · {money(selected.course.approvedPrice, selected.course.currency)}
+              </p>
             )}
-            {n.description && <div style={{ fontSize: '0.78rem', color: 'var(--ink-2)' }}>{n.description}</div>}
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>{actions(n)}</div>
-          </>
+            {selected.blockingNodeIds.length > 0 && (
+              <p style={{ fontSize: '0.88rem', color: 'var(--ink-2)' }}>
+                Complete first: {selected.blockingNodeIds.map((id) => byId.get(id)?.title).filter(Boolean).join(', ')}
+              </p>
+            )}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {actions(selected)}
+              {selected.course && selected.action !== 'VIEW_COURSE' && (
+                <ButtonLink size="sm" variant="tertiary" href={`/courses/${selected.course.slug}`}>Course details</ButtonLink>
+              )}
+            </div>
+          </div>
         )}
-      />
+      </Dialog>
     </div>
   );
 }

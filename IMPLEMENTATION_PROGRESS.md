@@ -50,6 +50,8 @@ Test totals: API 85 (46 unit + 39 integration) · Web 13 component · E2E 5 Play
 | Refunds and reconciliation | ✅ | ✅ | ✅ | ✅ | ✅ | integration (refund) | ◐ refunds are recorded, not pushed to Paystack |
 | Roadmaps: graph model, cycle detection, validation | ✅ | ✅ | ✅ | ✅ | ✅ | unit + integration | ✅ |
 | Roadmap review and publication | ✅ | ✅ | ✅ | ✅ | ✅ | integration | ✅ |
+| Roadmap view: spine-and-branch layout, step details panel | — | ✅ | ✅ | — | — | component + manual (desktop, mobile, both themes) | ✅ |
+| Public course map (full journey visible before enrolling or paying; content still gated) | — | ✅ | ✅ | — | ✅ | integration + manual | ✅ |
 | Learner roadmap progress and node actions | ✅ | ✅ | ✅ | — | ✅ | unit + integration | ✅ |
 | Support threads, messages, unread, resolve and reopen | ✅ | ✅ | ✅ polling | ✅ | ✅ 404 for non-participants | integration | ✅ |
 | Mentor assignment and reassignment | ✅ | ✅ | ✅ | ✅ | ✅ | manual | ✅ |
