@@ -1,4 +1,4 @@
-# Genuslab Academy
+# Cnergy Academy
 
 A multi-subject learning platform: structured courses with gated modules, quizzes, a winding course journey, cross-course roadmaps, paid courses through Paystack, mentor support, verifiable certificates, a creator workspace and a full administrator dashboard.
 

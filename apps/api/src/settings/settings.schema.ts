@@ -11,7 +11,7 @@ type SettingDef =
   | { type: 'enum'; default: string; options: string[]; group: string; label: string };
 
 export const SETTINGS_SCHEMA = {
-  'general.platformName': { type: 'string', default: 'Genuslab Academy', group: 'General', label: 'Platform name', maxLength: 80 },
+  'general.platformName': { type: 'string', default: 'Cnergy Academy', group: 'General', label: 'Platform name', maxLength: 80 },
   'general.supportEmail': { type: 'string', default: 'support@academy.local', group: 'General', label: 'Support email', maxLength: 120 },
   'finance.creatorSharePercent': {
     type: 'percent-or-null',

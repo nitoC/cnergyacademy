@@ -277,7 +277,7 @@ export const COURSES: SeedCourse[] = [
             minutes: 11,
             content: [
               p('Logs are for machines first. Emit JSON with consistent fields — request id, user id, route, latency — so you can filter and aggregate when something goes wrong at 3am.'),
-              code('json', `{"level":"info","msg":"payment settled","reference":"GA-LX2-9F3K","durationMs":182}`),
+              code('json', `{"level":"info","msg":"payment settled","reference":"CA-LX2-9F3K","durationMs":182}`),
               note('Never log secrets, tokens or full card data. Log identifiers you can look up instead.', 'warning'),
             ],
           },
