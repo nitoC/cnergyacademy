@@ -1,0 +1,25 @@
+.toggle {
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-well);
+  button {
+    width: 28px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--ink-3);
+    cursor: pointer;
+    &:hover { color: var(--ink-0); }
+    &[aria-checked='true'] {
+      color: var(--ink-0);
+      background: var(--surface-2);
+      box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+    }
+  }
+}

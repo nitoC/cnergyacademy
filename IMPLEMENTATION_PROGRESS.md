@@ -63,6 +63,7 @@ Test totals: API 85 (46 unit + 39 integration) · Web 13 component · E2E 5 Play
 | Admin: support oversight, certificates, settings, audit log | ✅ | ✅ | ✅ | ✅ whitelisted settings | ✅ append-only audit | integration | ✅ |
 | Swagger / OpenAPI | — | ✅ | — | — | — | manual | ◐ request DTOs are documented; response schemas are mostly inferred |
 | Seed data (idempotent) | ✅ | — | — | — | — | run twice, same counts | ✅ |
+| Light and dark themes (Light / Dark / System switch, no flash on load) | — | — | ✅ | — | — | manual: both themes at 1360 px and 390 px, preference persists across reloads | ✅ |
 | Responsive layout | — | — | ✅ | — | — | manual at 390 px and 1360 px | ◐ key pages checked; no device matrix |
 | Accessibility | — | — | ✅ labels, keyboard select, focus rings, native dialogs | — | — | component tests | ◐ no formal axe or screen-reader audit yet |
 

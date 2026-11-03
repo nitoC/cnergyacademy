@@ -85,11 +85,11 @@ export function RoadmapGraph<N extends GraphNodeView>({ nodes, edges, renderBody
         <svg className={s.svg} aria-hidden>
           <defs>
             <marker id="rm-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
-              <path d="M0,0 L10,5 L0,10 z" fill="#777164" />
+              <path d="M0,0 L10,5 L0,10 z" style={{ fill: 'var(--edge-marker)' }} />
             </marker>
           </defs>
           {lines.map((l) => (
-            <path key={l.id} d={l.d} fill="none" stroke={l.done ? '#5f9d74' : '#eee8dc'} strokeOpacity={l.done ? 0.9 : 0.22} strokeWidth={l.done ? 2 : 1.4} strokeDasharray={l.done ? undefined : '4 5'} markerEnd="url(#rm-arrow)" />
+            <path key={l.id} d={l.d} fill="none" style={{ stroke: l.done ? 'var(--forest-400)' : 'var(--edge)' }} strokeOpacity={l.done ? 0.9 : 0.3} strokeWidth={l.done ? 2 : 1.4} strokeDasharray={l.done ? undefined : '4 5'} markerEnd="url(#rm-arrow)" />
           ))}
         </svg>
         {rows.map((row, i) => (

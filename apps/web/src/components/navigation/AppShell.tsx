@@ -32,6 +32,7 @@ import { useLogout, useMe } from '@/features/auth/session';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Feedback';
 import { NotificationBell } from './NotificationBell';
+import { ThemeToggle } from '@/features/theme/ThemeToggle';
 import { Wordmark } from './Wordmark';
 import s from './nav.module.scss';
 
@@ -196,7 +197,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
           {!me?.roles.includes('CREATOR') && (
             <Link href="/become-a-creator" className={s.navLink}>
-              Teach on Cnergy
+              Teach on Schutech
             </Link>
           )}
           <button type="button" className={s.navLink} style={{ background: 'none', border: 0, cursor: 'pointer', textAlign: 'left' }} onClick={logout}>
@@ -210,6 +211,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Menu size={18} />
           </Button>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
+            <ThemeToggle />
             <NotificationBell />
           </div>
         </header>

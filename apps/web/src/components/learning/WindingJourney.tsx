@@ -90,10 +90,10 @@ export function WindingJourney({ journey, onSelect }: { journey: Journey; onSele
   return (
     <div className={s.wrap} style={{ height }} role="list" aria-label={`${journey.course.title} journey`}>
       <svg className={s.svg} viewBox={`0 0 ${W} ${height}`} preserveAspectRatio="none" aria-hidden>
-        <path d={trail} fill="none" stroke="#000" strokeOpacity="0.5" strokeWidth="16" vectorEffect="non-scaling-stroke" transform="translate(0 5)" />
-        <path d={trail} fill="none" stroke="#1b241d" strokeWidth="12" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-        <path d={trail} fill="none" stroke="#eee8dc" strokeOpacity="0.18" strokeWidth="1.6" strokeDasharray="2 8" vectorEffect="non-scaling-stroke" />
-        {donePath && <path d={donePath} fill="none" stroke="#5f9d74" strokeWidth="3" strokeLinecap="round" vectorEffect="non-scaling-stroke" />}
+        <path d={trail} fill="none" style={{ stroke: 'var(--trail-shadow)' }} strokeWidth="16" vectorEffect="non-scaling-stroke" transform="translate(0 5)" />
+        <path d={trail} fill="none" style={{ stroke: 'var(--trail-bed)' }} strokeWidth="12" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+        <path d={trail} fill="none" style={{ stroke: 'var(--trail-dash)' }} strokeWidth="1.6" strokeDasharray="2 8" vectorEffect="non-scaling-stroke" />
+        {donePath && <path d={donePath} fill="none" style={{ stroke: 'var(--forest-400)' }} strokeWidth="3" strokeLinecap="round" vectorEffect="non-scaling-stroke" />}
       </svg>
       {stops.map((st, i) => {
         const [x, yy] = pos[i];
